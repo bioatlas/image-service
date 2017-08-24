@@ -1,18 +1,39 @@
 language: groovy
 jdk:
-- oraclejdk7
+- openjdk7
 sudo: false
-branches:
-  only:
-  - master
 before_install:
- - wget -q https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/ala_common.sh
- - chmod +x ala_common.sh
- - source ./ala_common.sh
- - ala_travis_grails_setup_env
+- export TZ=Europe/Stockholm
+- date
+- rm -rf ~/.sdkman
+- curl -s http://get.sdkman.io | bash
+- echo "sdkman_auto_answer=true" > ~/.sdkman/etc/config
+- source ~/.sdkman/bin/sdkman-init.sh
+- GRAILS_VERSION=`grep '^app\.grails\.version=' ./application.properties | sed -e
+  's/^app\.grails\.version=//g'`
+- sdk install grails $GRAILS_VERSION || true
+before_script:
+- GRAILS_VERSION_NUMBER=`echo $GRAILS_VERSION | sed -e 's/\.[0-9]*$//g' -e 's/\.//g'
+  | tr -d "\r"`
+- echo "GRAILS_VERSION_NUMBER:$GRAILS_VERSION_NUMBER"
+- GRAILS_SETTINGS_FILE="travis_grails_settings_new.groovy"
+- if [ "$GRAILS_VERSION_NUMBER" -lt "23" ]; then GRAILS_SETTINGS_FILE="travis_grails_settings_old.groovy";
+  fi;
+- echo "GRAILS_SETTINGS_FILE:$GRAILS_SETTINGS_FILE"
+- mkdir -p ~/.grails
+- wget -q -O ~/.grails/settings.groovy https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/$GRAILS_SETTINGS_FILE
 script:
- - ala_travis_grails_build
-env:
-  global:
-  - secure: rWlywM7xq6UpiQJKSmfXM/lEURpBBtczVabWTFsL2APFu/ZkqeN8WTlLvvyupi6B4MXBUCpXkVQyGSdsoxUNrAQ6+HI7vYuCI0C44j+SelkoMgLjxsfWvRmc4FnP924LX3c9KqAjkjuMZ/cfUjomEuWiUiMCvwJO5laCCE9+Do4=
-  - secure: L2tXyQ3jVEDAOnhTUWJR8mzXXRp9VLAmlybS9gNy9cnsSdegLFZk/P8Og+AjY+X54sHGc7KOipMs5cJmNE9XG5IDCKq0m7LFNog6goI8N4/xi95k6vNXyeoIlcASpCAMW0YqLyZNz+oGbmmdhIwz8xdSZTPnrZWHPyczYkbb++0=
+- grails clean && grails refresh-dependencies --non-interactive && grails prod war
+  --non-interactive
+deploy:
+  provider: releases
+  api_key:
+    secure: J7S4tcttnutRjstLxSI8Lh+W3WYAW3RelHtmtCsKwi7OffJ6f/+ZWfH48EjPpWzUihSUXzobaRJBBfgceCbjiTKUL3pNlXfG9z4uiR5o1gNtUuXiyrzmitLoV7ttlONjEyt0c8Edv3exRAqQD70fKgDElt/kopcREdoqauXnrjP0pmP3NxDnrvgwx3VkOqit9gHaoIJUo6RKhe+Yi1MS0mBKG7RyGhR8v9kCNlVMwoUuShZFY7sHDcBDdQ0y7x8NnzOk/ggrxfau0Da3IzjdqnsksvS4B9kHrCb0/SOkuTNrmy1oS2T7kJEq9g5zPJKxo8OFP2nlmEt6U/ZddTBivLB+in/j75JBeDexF1QPsRKO4rGttBXKyVpyyrKlDGFRXcCEy2XShWVhEebLzLvYbIb2wMz4j4VNsaF1wmT1cfuMQ9ERsKaeaf2Pd9DcrQPBA2SKHPlmPd2ueqxdlk7R5J9DfgVjsTjIkXcrzzMHpOUAo+uiB4+SsySqjArU+2QoKnLjTrLvD5aZFoWM4wnHwfseH+MUvEaAKT2lj7plRbyktUYGS6un/gfZyNhDpfWWGO3BlPfNkHiNy+lsSNS4BsLSk1K4d52y+VweBCNGUeBarCROsNcARNXvQ5TgQ26D1nIn2HcO/Y7j89n+D1Xj412NJRqWKRIhpBWDGv/Q2BQ=
+  file: "target/ala-images*.war"
+  skip_cleanup: true
+  overwrite: true
+  file_glob: true
+  on:
+    repo: bioatlas/image-service
+    all-branches: true
+    tags: true
