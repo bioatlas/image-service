@@ -1,9 +1,11 @@
 package au.org.ala.images
 
 import au.org.ala.cas.util.AuthenticationUtils
+import au.org.ala.web.AlaSecured
 import au.org.ala.web.CASRoles
 import grails.converters.JSON
 import grails.converters.XML
+import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
 import org.grails.plugins.csv.CSVWriter
 import org.springframework.web.multipart.MultipartFile

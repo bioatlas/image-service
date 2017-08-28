@@ -3,6 +3,7 @@ package au.org.ala.images
 import au.org.ala.images.metadata.MetadataExtractor
 import au.org.ala.images.thumb.ThumbnailingResult
 import au.org.ala.images.tiling.TileFormat
+import com.sun.imageio.plugins.common.SubImageInputStream
 import grails.transaction.NotTransactional
 import grails.transaction.Transactional
 import org.apache.commons.codec.binary.Base64
@@ -489,7 +490,7 @@ class ImageService {
 
         value = sanitizeString(value)
 
-        if (image && StringUtils.isNotEmpty(key?.trim())) {
+        if (image && StringUtils.isNotEmpty(key?.trim()) && StringUtils.isNotEmpty(value?.trim())) {
 
             if (value.length() > 8000) {
                 auditService.log(image, "Cannot set metdata item '${key}' because value is too big! First 25 bytes=${value.take(25)}", userId)
@@ -531,7 +532,7 @@ class ImageService {
         metadata.each { kvp ->
             def value = sanitizeString(kvp.value?.toString())
             def key = kvp.key
-            if (image && StringUtils.isNotEmpty(key?.trim())) {
+            if (image && StringUtils.isNotEmpty(key?.trim()) && StringUtils.isNotEmpty(value?.trim())) {
 
                 if (value.length() > 8000) {
                     auditService.log(image, "Cannot set metdata item '${key}' because value is too big! First 25 bytes=${value.take(25)}", userId)
