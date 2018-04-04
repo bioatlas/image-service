@@ -23,13 +23,13 @@ if(System.getenv(ENV_NAME) && new File(System.getenv(ENV_NAME)).exists()) {
 println "[${appName}] (*) grails.config.locations = ${grails.config.locations}"
 
 skin.layout = "images"
-//headerAndFooter.baseURL = 'http://www2.ala.org.au/commonui'
-ala.baseURL = "http://www.ala.org.au"
-bie.baseURL = "http://bie.ala.org.au"
+//headerAndFooter.baseURL = 'https://www2.ala.org.au/commonui'
+ala.baseURL = "https://www.ala.org.au"
+bie.baseURL = "https://bie.ala.org.au"
 bie.searchPath = "/search"
-collectory.baseURL = "http://collections.ala.org.au"
-biocache.baseURL = "http://biocache.ala.org.au"
-bie.baseURL = "http://bie.ala.org.au"
+collectory.baseURL = "https://collections.ala.org.au"
+biocache.baseURL = "https://biocache.ala.org.au"
+bie.baseURL = "https://bie.ala.org.au"
 
 grails.project.groupId = "au.org.ala"
 grails.cache.enabled = true

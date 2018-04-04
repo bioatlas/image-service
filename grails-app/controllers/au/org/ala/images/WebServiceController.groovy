@@ -807,77 +807,84 @@ class WebServiceController {
     def uploadImage() {
         // Expect a multipart file request
 
-        Image image = null
+        try {
 
-        def userId = getUserIdForRequest(request)
-        def url = params.imageUrl ?: params.url
-        def metadata = {
-            if(params.metadata){
-                JSON.parse(params.metadata as String) as Map
+
+            Image image = null
+
+            def userId = getUserIdForRequest(request)
+            def url = params.imageUrl ?: params.url
+            def metadata = {
+                if (params.metadata) {
+                    JSON.parse(params.metadata as String) as Map
+                } else {
+                    [:]
+                }
+            }.call()
+
+
+            if (url) {
+                // Image is located at an endpoint, and we need to download it first.
+                image = imageService.storeImageFromUrl(url, userId, metadata)
+                if (!image) {
+                    renderResults([success: false, message: "Unable to retrieve image from ${url}"])
+                }
             } else {
-                [:]
-            }
-        }.call()
+                // it should contain a file parameter
+                MultipartRequest req = request as MultipartRequest
+                if (req) {
+                    MultipartFile file = req.getFile('image')
+                    if (!file) {
+                        renderResults([success: false, message: 'image parameter not found. Please supply an image file.'])
+                        return
+                    }
 
+                    if (file.size == 0) {
+                        renderResults([success: false, message: 'the supplied image was empty. Please supply an image file.'])
+                        return
+                    }
 
-        if (url) {
-            // Image is located at an endpoint, and we need to download it first.
-            image = imageService.storeImageFromUrl(url, userId, metadata)
-            if (!image) {
-                renderResults([success: false, message: "Unable to retrieve image from ${url}"])
-            }
-        } else {
-            // it should contain a file parameter
-            MultipartRequest req = request as MultipartRequest
-            if (req) {
-                MultipartFile file = req.getFile('image')
-                if (!file ) {
-                    renderResults([success: false, message: 'image parameter not found. Please supply an image file.'])
-                    return
-                }
-
-                if (file.size == 0) {
-                    renderResults([success: false, message: 'the supplied image was empty. Please supply an image file.'])
-                    return
-                }
-
-                image = imageService.storeImage(file, userId, metadata)
-            } else {
-                renderResults([success: false, message: "No url parameter, therefore expected multipart request!"])
-            }
-        }
-
-        if (image) {
-
-            //store any other property
-            metadata.each { kvp ->
-                if(!image.hasProperty(kvp.key)){
-                    imageService.setMetaDataItem(image, MetaDataSourceType.SystemDefined, kvp.key as String, kvp.value as String)
+                    image = imageService.storeImage(file, userId, metadata)
+                } else {
+                    renderResults([success: false, message: "No url parameter, therefore expected multipart request!"])
                 }
             }
 
-            if (params.tags) {
-                def tags = JSON.parse(params.tags as String) as List
-                if (tags) {
-                    tags.each { String tagPath ->
-                        def tag = tagService.createTagByPath(tagPath)
-                        tagService.attachTagToImage(image, tag, userId)
+            if (image) {
+
+                //store any other property
+                metadata.each { kvp ->
+                    if (!image.hasProperty(kvp.key)) {
+                        imageService.setMetaDataItem(image, MetaDataSourceType.SystemDefined, kvp.key as String, kvp.value as String)
                     }
                 }
-            }
 
-            // Callers have the option to generate thumbs immediately (although it will block).
-            // And they will be regenerated later as part of general artifact generation
-            // This is useful, though, if the uploader needs to link to the thumbnail straight away
-            if (params.synchronousThumbnail) {
-                imageService.generateImageThumbnails(image)
-            }
+                if (params.tags) {
+                    def tags = JSON.parse(params.tags as String) as List
+                    if (tags) {
+                        tags.each { String tagPath ->
+                            def tag = tagService.createTagByPath(tagPath)
+                            tagService.attachTagToImage(image, tag, userId)
+                        }
+                    }
+                }
 
-            imageService.scheduleArtifactGeneration(image.id, userId)
-            imageService.scheduleImageIndex(image.id)
-            renderResults([success: true, imageId: image?.imageIdentifier])
-        } else {
-            renderResults([success: false, message: "Failed to store image!"])
+                // Callers have the option to generate thumbs immediately (although it will block).
+                // And they will be regenerated later as part of general artifact generation
+                // This is useful, though, if the uploader needs to link to the thumbnail straight away
+                if (params.synchronousThumbnail) {
+                    imageService.generateImageThumbnails(image)
+                }
+
+                imageService.scheduleArtifactGeneration(image.id, userId)
+                imageService.scheduleImageIndex(image.id)
+                renderResults([success: true, imageId: image?.imageIdentifier])
+            } else {
+                renderResults([success: false, message: "Failed to store image!"])
+            }
+        } catch (Exception e){
+            log.error(e.getMessage(), e)
+            renderResults([success: false, message: "Failed to store image!"], 500)
         }
     }
 

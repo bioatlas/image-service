@@ -31,7 +31,7 @@
                 imageServiceBaseUrl : "${grailsApplication.config.serverName}${grailsApplication.config.contextPath}",
                 imageClientBaseUrl : "${grailsApplication.config.serverName}${grailsApplication.config.contextPath}"
             };
-            imgvwr.viewImage($("#imageViewer"), "${imageInstance.imageIdentifier}", options);
+            imgvwr.viewImage($("#imageViewer"), "${imageInstance.imageIdentifier}", "", "", options);
         });
         </r:script>
     </head>

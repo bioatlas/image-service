@@ -7,7 +7,7 @@
         <meta name="description" content="Atlas of Living Australia"/>
         <meta name="author" content="Atlas of Living Australia">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="http://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+        <link href="https://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
         <r:require modules="bootstrap, application, qtip, image-viewer"/>
 
         <style>
@@ -43,7 +43,7 @@
             // initialise plugins
             jQuery(function () {
                 // autocomplete on navbar search input
-                jQuery("form#search-form-2011 input#search-2011, form#search-inpage input#search, input#search-2013").autocomplete('http://bie.ala.org.au/search/auto.jsonp', {
+                jQuery("form#search-form-2011 input#search-2011, form#search-inpage input#search, input#search-2013").autocomplete('https://bie.ala.org.au/search/auto.jsonp', {
                     extraParams: {limit: 100},
                     dataType: 'jsonp',
                     parse: function (data) {
