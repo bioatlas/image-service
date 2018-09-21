@@ -181,6 +181,6 @@ log4j = {
             //'grails.app.taglib',
             'grails.web.pages',
             //'grails.app',
-            'au.org.ala.cas',
+//            'au.org.ala.cas',
             'au.org.ala.image'
 }

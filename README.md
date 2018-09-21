@@ -21,8 +21,8 @@ There are other related repositories to this one:
 
 ## Architecture
 
-* Grails web application ran in the tomcat 7 or above
-* Oracle Java 7
+* Grails 2.5.6 web application ran in the tomcat 7 or above
+* Oracle Java 8
 * Postgres database (9.3 or above)
 
 ## Installation

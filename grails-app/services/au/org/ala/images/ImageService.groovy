@@ -1,15 +1,16 @@
 package au.org.ala.images
 
+import au.com.bytecode.opencsv.CSVWriter
 import au.org.ala.images.metadata.MetadataExtractor
 import au.org.ala.images.thumb.ThumbnailingResult
 import au.org.ala.images.tiling.TileFormat
-import com.sun.imageio.plugins.common.SubImageInputStream
+import com.sun.javafx.iio.ImageMetadata
 import grails.converters.JSON
 import grails.transaction.NotTransactional
 import grails.transaction.Transactional
+import groovy.sql.Sql
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.imaging.Imaging
-import org.apache.commons.imaging.common.ImageMetadata
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata
 import org.apache.commons.imaging.formats.tiff.TiffField
 import org.apache.commons.imaging.formats.tiff.constants.TiffConstants
@@ -21,13 +22,17 @@ import org.codehaus.groovy.grails.plugins.codecs.MD5Codec
 import org.codehaus.groovy.grails.plugins.codecs.SHA1Codec
 import org.hibernate.FlushMode
 import org.springframework.web.multipart.MultipartFile
-
 import java.text.SimpleDateFormat
+import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
 
 @Transactional
 class ImageService {
 
+    def dataSource
     def imageStoreService
     def tagService
     def grailsApplication
@@ -42,7 +47,7 @@ class ImageService {
 
     private static int BACKGROUND_TASKS_BATCH_SIZE = 100
 
-    public Image storeImage(MultipartFile imageFile, String uploader, Map metadata = [:]) {
+    Image storeImage(MultipartFile imageFile, String uploader, Map metadata = [:]) {
 
         if (imageFile) {
             // Store the image
@@ -55,7 +60,7 @@ class ImageService {
         return null
     }
 
-    public Image storeImageFromUrl(String imageUrl, String uploader, Map metadata = [:]) {
+    Image storeImageFromUrl(String imageUrl, String uploader, Map metadata = [:]) {
         if (imageUrl) {
             try {
                 def url = new URL(imageUrl)
@@ -72,7 +77,7 @@ class ImageService {
     }
 
     @NotTransactional
-    public Map batchUploadFromUrl(List<Map<String, String>> imageSources, String uploader) {
+    Map batchUploadFromUrl(List<Map<String, String>> imageSources, String uploader) {
         def results = [:]
         Image.withNewTransaction {
 
@@ -106,11 +111,11 @@ class ImageService {
         return results
     }
 
-    public int getImageTaskQueueLength() {
+    int getImageTaskQueueLength() {
         return _backgroundQueue.size()
     }
 
-    public int getTilingTaskQueueLength() {
+    int getTilingTaskQueueLength() {
         return _tilingQueue.size()
     }
 
@@ -799,5 +804,23 @@ class ImageService {
             image = Image.findByImageIdentifier(guid)
         }
         return image
+    }
+
+    /**
+     * Export CSV. This uses a stored procedure that needs to be installed as part of the
+     * service installation.
+     *
+     * @param outputStream
+     * @return
+     */
+    def exportCSV(outputStream){
+
+//        def base_image_url = grailsApplication.config.grails.serverURL  + '/image/proxyImageThumbnailLarge?imageId='
+//        def base_details_url = grailsApplication.config.grails.serverURL  + '/image/details/'
+        def exportFile = "/data/images/exports/images.csv"
+        new Sql(dataSource).call("{ call export_images() }")
+        new File(exportFile).withInputStream { stream ->
+            outputStream << stream
+        }
     }
 }

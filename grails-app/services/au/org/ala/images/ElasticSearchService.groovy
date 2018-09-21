@@ -6,6 +6,7 @@ import groovy.json.JsonSlurper
 import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
 import org.elasticsearch.action.delete.DeleteResponse
 import org.elasticsearch.action.index.IndexResponse
+import org.elasticsearch.action.search.SearchPhaseExecutionException
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.action.search.SearchType
@@ -256,7 +257,9 @@ class ElasticSearchService {
             ct.stop(true)
 
             return new QueryResults<Image>(list: imageList, totalCount: searchResponse?.hits?.totalHits ?: 0)
-
+        } catch (SearchPhaseExecutionException e) {
+            log.warn(".SearchPhaseExecutionException thrown - this is expected behaviour for a new empty system.")
+            return new QueryResults<Image>(list: [], totalCount: 0)
         } catch (IndexMissingException e) {
             log.warn("IndexMissingException thrown - this is expected behaviour for a new empty system.")
             return new QueryResults<Image>(list: [], totalCount: 0)

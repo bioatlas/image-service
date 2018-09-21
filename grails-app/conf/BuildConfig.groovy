@@ -39,25 +39,27 @@ grails.project.dependency.resolution = {
         runtime 'org.postgresql:postgresql:9.4-1201-jdbc41'
         compile 'org.imgscalr:imgscalr-lib:4.2'
         runtime 'org.apache.commons:commons-imaging:1.0-SNAPSHOT'
-        runtime 'org.apache.tika:tika-core:1.4'
-        runtime 'javax.media:jai_imageio:1.1'
-        runtime 'au.org.ala:image-utils:1.8.2'
+        runtime 'org.apache.tika:tika-core:1.18'
+        runtime 'com.github.jai-imageio:jai-imageio-core:1.4.0'
+        runtime 'au.org.ala:image-utils:1.8.3'
         compile 'org.apache.ant:ant:1.7.1'
         compile 'org.apache.ant:ant-launcher:1.7.1'
         compile 'org.elasticsearch:elasticsearch:1.5.2'
+        compile 'org.elasticsearch:elasticsearch:1.5.2'
+        compile 'com.opencsv:opencsv:4.2'
     }
 
     plugins {
         build ":release:3.0.1"
         // plugins for the build system only
-        build ":tomcat:7.0.54"
+        build ":tomcat:7.0.70"
 
         // plugins for the compile step
-        compile ":scaffolding:2.0.3"
-        compile ':cache:1.1.1'
+        compile ":scaffolding:2.1.2"
+        compile ':cache:1.1.8'
         compile ":quartz:1.0.1"
-        compile ":csv:0.3.1"        
-        compile ":jquery-ui:1.8.24"
+        compile ":csv:0.3.1"
+        runtime ":jquery:1.11.1"
 
         // plugins needed at runtime but not for compilation
         runtime ":hibernate:3.6.10.16"

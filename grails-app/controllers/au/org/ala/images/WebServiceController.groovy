@@ -12,6 +12,8 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartRequest
 
 import javax.servlet.http.HttpServletRequest
+import java.util.zip.GZIPOutputStream
+import java.util.zip.ZipOutputStream
 
 class WebServiceController {
 
@@ -701,7 +703,6 @@ class WebServiceController {
         job.delete()
     }
 
-
     def postJobResults() {
         def ticket = params.jobTicket ?: params.ticket
         if (!ticket) {
@@ -1043,5 +1044,14 @@ class WebServiceController {
         } else {
             renderResults([success:"false", message:'No harvestable images found'])
         }
+    }
+
+    def exportCSV(){
+        response.setHeader("Content-disposition", "attachment;filename=images-export.csv.gz")
+        response.contentType = "application/gzip"
+        def bos = new GZIPOutputStream(response.outputStream)
+        imageService.exportCSV(bos)
+        bos.flush()
+        bos.close()
     }
 }
