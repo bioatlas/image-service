@@ -4,13 +4,13 @@ import au.com.bytecode.opencsv.CSVWriter
 import au.org.ala.images.metadata.MetadataExtractor
 import au.org.ala.images.thumb.ThumbnailingResult
 import au.org.ala.images.tiling.TileFormat
-import com.sun.javafx.iio.ImageMetadata
 import grails.converters.JSON
 import grails.transaction.NotTransactional
 import grails.transaction.Transactional
 import groovy.sql.Sql
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.imaging.Imaging
+import org.apache.commons.imaging.common.ImageMetadata
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata
 import org.apache.commons.imaging.formats.tiff.TiffField
 import org.apache.commons.imaging.formats.tiff.constants.TiffConstants
