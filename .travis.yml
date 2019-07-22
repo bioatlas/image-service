@@ -2,10 +2,6 @@ language: groovy
 jdk:
   - openjdk8
 sudo: false
-branches:
-  only:
-    - master
-    - grails2
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -rf $HOME/.gradle/caches/*/plugin-resolution/
@@ -29,7 +25,7 @@ deploy:
   provider: releases
   api_key:
     secure: SUHAEmw+pzvobIKExQIfUjD+EyJRs+94q6FbkaWMROa3ThgSTSQ/FUkOalGfckstXGGLzKCp8VNwyRiHYT6i+0PTQapuMhCpiLKek18AO1u8iF8GSjUqeXpHzR4m+LiMcKAfZwrD0ioPViG1oWL8XQK/yHFAVbykhGHj6yGHKvd0/JfmgM3LEgMvTn6DNmU1sI5D3QaKlYCvuUDZ1EElo+YYzMTHDOcmvFtl755PJKB/0WXn7Dq8uGM0p3BBrHHbzmoXX9Dpe8zHTHHfDLrq9U/esguC3/EripzJ3XFdblSQQjmFJfeeDY0ELADe0qsP1Yvk7Q/pcTVKqYKLl2lQh6ysZL6IOpjwknxfmatx/IyBkdqWPUhQXzlMuPVD+cRcmVjxeL0dCdx+sZbYrlR2T5MvL96E1ohp1FNEZzEE4l4QKO5B4ie0MMOvQAqq931eLAezzUTs3TFENu67EBb74bM7nIBK2d7sp9/US4f7ykCMN+16qiFt6oSjD8t2N34rvlMZXwAYSKJG2BQvXrwLKLLkZRy0tsysu70zXbclxaEJnPaA+ncZ9w+Agt+jzbsyrLpzbnywu87ZKoXlMxnEwZr7k2WMPcta0Bo25f0rZOoVSgt3fFb0Mvd4BRvBbZD2yTbSbalL//PZFSF83mnnVnkMUX6UPF6JG8zCvpRjrsM=
-  file: "target/ala-images*.war"
+  file: "./build/libs/ala-images*.war"
   skip_cleanup: true
   overwrite: true
   file_glob: true
