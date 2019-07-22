@@ -21,7 +21,7 @@
         <tr>
             <td>
                 <div style="margin-top: 5px; margin-bottom: 5px;">
-                    <g:select id="fieldListBox" name="fieldValue" from="${allowedValues?.sort({ it.value })}" optionValue="value" optionKey="name" multiple="multiple" size="12" style="width: 300px" value="${criteria?.value?.split("\\|")?.toList()}" />
+                    <g:select class="form-control" id="fieldListBox" name="fieldValue" from="${allowedValues?.sort({ it.value })}" optionValue="value" optionKey="name" multiple="multiple" size="12" style="width: 300px" value="${criteria?.value?.split("\\|")?.toList()}" />
                 </div>
             </td>
             <td style="vertical-align: top">

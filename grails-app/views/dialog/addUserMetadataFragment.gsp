@@ -1,46 +1,41 @@
 <%@ page import="au.org.ala.images.MetaDataSourceType" %>
-<div class="form-horizontal">
+<div>
 
-    <div class="control-group">
-        <label class="control-label" for="metaDataKey">Name</label>
-        <div class="controls">
-            <input type="text" id="metaDataKey" placeholder="Metadata key">
+    <form>
+        <div class="form-group">
+            <label class="control-label" for="metaDataKey">Name:</label>
+            <input type="text" class="form-control input-lg" id="metaDataKey" placeholder="Metadata key">
         </div>
-    </div>
 
-    <div class="control-group">
-        <label class="control-label" for="metaDataValue">Value</label>
-        <div class="controls">
-            <input type="text" id="metaDataValue" placeholder="Value">
+        <div class="form-group">
+            <label class="control-label" for="metaDataValue">Value:</label>
+            <input type="text" class="form-control input-lg" id="metaDataValue" placeholder="Value">
         </div>
-    </div>
 
-    <div class="control-group">
-        <div class="controls">
+        <div class="form-group">
             <button class="btn btn-primary" id="btnAddNewUserMetadata">Add</button>
-            <button class="btn" id="btnCancelAddUserMetaData">Cancel</button>
+            <button class="btn btn-default" id="btnCancelAddUserMetaData">Cancel</button>
         </div>
-    </div>
+    </form>
 
-</div>
-<script>
+    <script>
 
-    $("#btnCancelAddUserMetaData").click(function(e) {
-        e.preventDefault();
-        imgvwr.hideModal();
-    });
+        $("#btnCancelAddUserMetaData").click(function(e) {
+            e.preventDefault();
+            imgvwr.hideModal();
+        });
 
-    $("#btnAddNewUserMetadata").click(function(e) {
-        e.preventDefault();
-        var key = $("#metaDataKey").val();
-        var value = $("#metaDataValue").val();
-        if (key && value) {
-            key = encodeURIComponent(key);
-            value = encodeURIComponent(value);
-            if (imgvwr.onAddMetadata) {
-                imgvwr.onAddMetadata(key, value);
+        $("#btnAddNewUserMetadata").click(function(e) {
+            e.preventDefault();
+            var key = $("#metaDataKey").val();
+            var value = $("#metaDataValue").val();
+            if (key && value) {
+                key = encodeURIComponent(key);
+                value = encodeURIComponent(value);
+                if (imgvwr.onAddMetadata) {
+                    imgvwr.onAddMetadata(key, value);
+                }
             }
-        }
-    });
-
-</script>
+        });
+    </script>
+</div>

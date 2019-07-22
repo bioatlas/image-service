@@ -1,15 +1,19 @@
 package au.org.ala.images
 
+import au.org.ala.cas.util.AuthenticationUtils
 import au.org.ala.web.AlaSecured
 import au.org.ala.web.CASRoles
+import com.opencsv.CSVReader
 import grails.converters.JSON
+import grails.converters.XML
 import groovy.json.JsonSlurper
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.multipart.MultipartRequest
 
 import java.util.regex.Pattern
 
 
-@AlaSecured(value = [CASRoles.ROLE_ADMIN], redirectUri = "/")
+@AlaSecured(value = [CASRoles.ROLE_ADMIN, "ROLE_IMAGE_ADMIN"], redirectUri = "/", anyRole = true)
 class AdminController {
 
     def imageService
@@ -17,9 +21,206 @@ class AdminController {
     def tagService
     def elasticSearchService
     def collectoryService
+    def batchService
+    def analyticsService
+    def imageStoreService
+    def authService
 
     def index() {
         redirect(action:'dashboard')
+    }
+
+
+
+    def image() {
+        def image = imageService.getImageFromParams(params)
+        if (!image) {
+            flash.errorMessage = "Could not find image with id ${params.int("id") ?: params.imageId }!"
+            redirect(action:'list')
+        } else {
+            def subimages = Subimage.findAllByParentImage(image)*.subimage
+            def sizeOnDisk = imageStoreService.getConsumedSpaceOnDisk(image.imageIdentifier)
+
+            //accessible from cookie
+            def userEmail = AuthenticationUtils.getEmailAddress(request)
+            def userDetails = authService.getUserForEmailAddress(userEmail, true)
+            def userId = userDetails ? userDetails.id : ""
+
+            def isAdmin = false
+            if (userDetails){
+                if (userDetails.getRoles().contains("ROLE_ADMIN"))
+                    isAdmin = true
+            }
+
+            def albums = []
+
+            def thumbUrls = imageService.getAllThumbnailUrls(image.imageIdentifier)
+
+            boolean isImage = imageService.isImageType(image)
+
+            //add additional metadata
+            def resourceLevel = collectoryService.getResourceLevelMetadata(image.dataResourceUid)
+
+            render( view:"../image/details", model: [imageInstance: image, subimages: subimages, sizeOnDisk: sizeOnDisk, albums: albums,
+             squareThumbs: thumbUrls, isImage: isImage, resourceLevel: resourceLevel, isAdmin:isAdmin, userId:userId, isAdminView:true])
+        }
+    }
+
+    def upload() { }
+    def analytics() {
+        render(view: 'analytics', model:[results:analyticsService.byAll()])
+    }
+
+    def storeImage() {
+
+        MultipartFile file = request.getFile('image')
+
+        if (!file || file.size == 0) {
+            flash.errorMessage = "You need to select a file to upload!"
+            redirect(action:'upload')
+            return
+        }
+
+        def pattern = Pattern.compile('^image/(.*)$|^audio/(.*)$')
+
+        def m = pattern.matcher(file.contentType)
+        if (!m.matches()) {
+            flash.errorMessage = "Invalid file type for upload. Must be an image or audio file (content is ${file.contentType})"
+            redirect(action:'upload')
+            return
+        }
+
+        def userId = AuthenticationUtils.getUserId(request) ?: "<anonymous>"
+        ImageStoreResult storeResult = imageService.storeImage(file, userId)
+        if (storeResult.image) {
+            imageService.schedulePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
+        } else {
+            imageService.scheduleNonImagePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
+        }
+        flash.message = "Image uploaded with identifier: ${storeResult.image?.imageIdentifier}"
+        redirect(action:'upload')
+    }
+
+    def uploadImagesFromCSVFile() {
+        // it should contain a file parameter
+        MultipartRequest req = request as MultipartRequest
+        if (req) {
+            MultipartFile file = req.getFile('csvfile')
+            if (!file || file.size == 0) {
+                renderResults([success: false, message: 'File not supplied or is empty. Please supply a filename.'])
+                return
+            }
+
+            // need to convert the csv file into a list of maps...
+            int lineCount = 0
+            def headers = []
+            def batch = []
+
+            file.inputStream.eachCsvLine { tokens ->
+                if (lineCount == 0) {
+                    headers = tokens
+                } else {
+                    def m = [:]
+                    for (int i = 0; i < headers.size(); ++i) {
+                        m[headers[i]] = tokens[i]
+                    }
+                    batch << m
+                }
+                lineCount++
+            }
+
+            scheduleImagesUpload(batch, '-2')
+            renderResults([success: true, message:'Image upload started'])
+        } else {
+            renderResults([success: false, message: "Expected multipart request containing 'csvfile' file parameter"])
+        }
+    }
+
+    def scheduleImagesUpload(imageList, userId){
+
+        def batchId = batchService.createNewBatch()
+        int imageCount = 0
+        imageList.each { srcImage ->
+            if (!srcImage.containsKey("importBatchId")) {
+                srcImage["importBatchId"] = batchId
+            }
+            batchService.addTaskToBatch(batchId, new UploadFromUrlTask(srcImage, imageService, userId))
+            imageCount++
+        }
+    }
+
+    def licences(){}
+
+    def updateStoredLicences(){
+
+        def licensesCSV = params.licenses
+        def licenceMappingCSV = params.licenseMapping
+
+        //load licences
+        if (licensesCSV) {
+            def csv = new CSVReader(new StringReader(licensesCSV))
+            def iter = csv.iterator()
+            while (iter.hasNext()) {
+                def line = iter.next()
+                if (line && line.length >= 4 && line[0] && line[1] && line[2]){
+                    License license = License.findByAcronym(line[0])
+                    if (license){
+                        license.name = line[1]
+                        license.url = line[2]
+                        license.imageUrl = line[3]
+                        license.save(flush: true, failOnError: true)
+                    } else {
+                        license = new License(acronym: line[0], name: line[1], url: line[2], imageUrl: line[3])
+                        license.save(flush: true, failOnError: true)
+                    }
+                }
+            }
+        }
+
+        //load license mappings
+        if (licenceMappingCSV){
+            def csv2 = new CSVReader(new StringReader(licenceMappingCSV))
+            def iter2 = csv2.iterator()
+            while (iter2.hasNext()){
+                def line = iter2.next()
+                if (line && line.length >= 2 && line[0] && line[1]) {
+                    def license = License.findByAcronym(line[0])
+                    if (license) {
+                        LicenseMapping licenseMapping = LicenseMapping.findByValue(line[1])
+                        if (licenseMapping) {
+                            licenseMapping.license = license
+                            licenseMapping.save(flush: true, failOnError: true)
+                        } else {
+                            licenseMapping = new LicenseMapping(license: license, value: line[1])
+                            licenseMapping.save(flush: true, failOnError: true)
+                        }
+                    } else {
+                        log.error("Unable to find mapping for acronym" + line[0])
+                    }
+                }
+            }
+        }
+
+        redirect(action:'dashboard', message: "Licences updated")
+    }
+
+    private renderResults(Object results, int responseCode = 200) {
+
+        withFormat {
+            json {
+                def jsonStr = results as JSON
+                if (params.callback) {
+                    render("${params.callback}(${jsonStr})")
+                } else {
+                    render(jsonStr)
+                }
+            }
+            xml {
+                render(results as XML)
+            }
+        }
+        response.addHeader("Access-Control-Allow-Origin", "")
+        response.status = responseCode
     }
 
     def searchCriteria() {
@@ -59,26 +260,24 @@ class AdminController {
                 flash.errorMessage = "Delete failed. This is probably because there exists search critera that use this definition<br/>" + ex.message
             }
         }
-
         redirect(action:"searchCriteria")
     }
 
-    def dashboard() {
-    }
+    def dashboard() {}
 
-    def tools() {
-    }
+    def tools() {}
 
-    def localIngest() {
-    }
+    def localIngest() {}
 
     def reinitialiseImageIndex() {
         imageService.deleteIndex()
+        flash.message = "Initialised. Image index now empty. Reindex images to repopulate."
         redirect(action:'tools')
     }
 
     def reindexImages() {
-        imageService.scheduleBackgroundTask(new ScheduleReindexAllImagesTask(imageService))
+        flash.message = "Reindexing scheduled. Monitor progress using the dashboard."
+        imageService.scheduleBackgroundTask(new ScheduleReindexAllImagesTask(imageService, elasticSearchService))
         redirect(action:'tools')
     }
 
@@ -182,11 +381,15 @@ class AdminController {
         redirect(action:'settings')
     }
 
-    def tags() {
+    def tags() {}
 
-    }
+    def uploadTagsFragment() {}
 
-    def uploadTagsFragment() {
+    def clearQueues(){
+        imageService.clearImageTaskQueue()
+        imageService.clearTilingTaskQueueLength()
+        flash.message = 'Queue cleared'
+        redirect(action:'tools', message: 'Queue cleared')
     }
 
     def uploadTagsFile() {
@@ -203,6 +406,18 @@ class AdminController {
         flash.message = "${count} tags loaded from file"
 
         redirect(action:'tags')
+    }
+
+    def rematchLicenses(){
+        imageService.scheduleBackgroundTask(new ScheduleLicenseReMatchAllBackgroundTask(imageService))
+        flash.message = "Rematching licenses scheduled. Monitor progress using the dashboard.";
+        redirect(action:'tools', message: flash.message)
+    }
+
+    def checkForMissingImages(){
+        imageService.scheduleBackgroundTask(new ScheduleMissingImagesBackgroundTask(imageStoreService, grailsApplication.config.imageservice.exportDir))
+        flash.message = "Check for missing images started......Output: " + grailsApplication.config.imageservice.exportDir + "/missing-images.csv";
+        redirect(action:'tools', message: flash.message)
     }
 
     def indexSearch() {
@@ -226,6 +441,7 @@ class AdminController {
 
     def clearCollectoryCache(){
         collectoryService.clearCache()
-        redirect(action:'tools')
+        flash.message = 'Collectory cache cleared'
+        redirect(action:'tools', message: 'Cache is cleared')
     }
 }

@@ -45,7 +45,7 @@
 
     <script>
 
-        jQuery("#fieldName").autocomplete("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'darwinCoreTerms')}", {
+        jQuery("#fieldName").autocomplete("${grailsApplication.config.grails.serverURL}${createLink(controller:'webService', action:'darwinCoreTerms')}", {
             dataType: 'jsonp',
             parse: function (data) {
                 var rows = new Array();

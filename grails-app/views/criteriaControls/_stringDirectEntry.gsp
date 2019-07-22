@@ -15,6 +15,6 @@
 <div>
     <span>Enter a value to match:</span>
     <div>
-        <g:textField class="input-xlarge" name="fieldValue" value="${value}" />
+        <g:textField class="form-control input-xlarge" name="fieldValue" value="${value}" />
     </div>
 </div>

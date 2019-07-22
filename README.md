@@ -11,8 +11,10 @@ It includes:
 * Webservices for image upload
 * Generate of derivative images for thumbnail presentation
 * Tagging support
-* Creation of albums of images and bulk tagging
 * Administrator console for image management
+* Swagger API
+* Integration with google analytics to monitor image usage by data resource
+
 
 There are other related repositories to this one:
 * [images-client-plugin](https://github.com/AtlasOfLivingAustralia/images-client-plugin) - a grails plugin to provide a Javascript based viewer to be used in other applications requiring a image viewer. This viewer is based on LeafletJS.
@@ -21,12 +23,38 @@ There are other related repositories to this one:
 
 ## Architecture
 
-* Grails 2.5.6 web application ran in the tomcat 7 or above
-* Oracle Java 8
-* Postgres database (9.3 or above)
+* Grails 3 web application ran in the tomcat 7 or as standalone executable jar
+* Open JDK 8
+* Postgres database (9.6 or above)
+* Elastic search 7
 
 ## Installation
 
 There are ansible scripts for this applications (and other ALA tools) in the [ala-install](https://github.com/AtlasOfLivingAustralia/ala-install) project. The ansible playbook for the image-service is [here](https://github.com/AtlasOfLivingAustralia/ala-install/blob/master/ansible/image-service.yml)
 
 You can also run this application locally by following the instructions on its [wiki page](https://github.com/AtlasOfLivingAustralia/image-service/wiki)
+
+## Running it locally
+
+### Postgres
+There is a docker-compose YML file that can be used to run postgres locally for local development purposes.
+To use run:
+```$xslt
+docker-compose -f elastic.yml up -d
+```
+And to shutdown
+```$xslt
+docker-compose -f elastic.yml kill
+```
+
+
+### Elastic search
+There is a docker-compose YML file that can be used to run elastic search locally for local development purposes.
+To use run:
+```$xslt
+docker-compose -f elastic.yml up -d
+```
+And to shutdown
+```$xslt
+docker-compose -f elastic.yml kill
+```

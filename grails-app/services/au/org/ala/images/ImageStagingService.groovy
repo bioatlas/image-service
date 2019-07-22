@@ -1,12 +1,11 @@
 package au.org.ala.images
 
-import grails.plugin.cache.GrailsAnnotationCacheOperationSource
 import grails.transaction.Transactional
 import org.apache.commons.io.ByteOrderMark
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.input.BOMInputStream
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
-import org.grails.plugins.csv.CSVMapReader
+import grails.web.servlet.mvc.GrailsParameterMap
+import grails.plugins.csv.CSVMapReader
 import org.springframework.web.multipart.MultipartFile
 
 import java.util.regex.Pattern
@@ -287,7 +286,7 @@ class ImageStagingService {
             // Create the image domain object
             def bytes = file.getBytes()
             def mimeType = imageService.detectMimeTypeFromBytes(bytes, file.name)
-            image = imageService.storeImageBytes(bytes, file.name, file.length(),mimeType, stagedFile.userId)
+            image = imageService.storeImageBytes(bytes, file.name, file.length(),mimeType, stagedFile.userId).image
 
             auditService.log(image, "Imported from ${file.absolutePath}", stagedFile.userId)
 

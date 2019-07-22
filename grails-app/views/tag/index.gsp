@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <meta name="layout" content="images"/>
+    <meta name="layout" content="main"/>
     <meta name="section" content="home"/>
     <title>Tags | ${grailsApplication.config.skin.orgNameLong}</title>
 
@@ -20,19 +20,19 @@
     %>
 </img:headerContent>
 <div class="row-fluid">
-    <div class="span4">
+    <div class="col-md-4">
         <div class="well well-small">
 
             <div class="row-fluid" style="margin-bottom: 10px">
-                <div class="span12">
+                <div class="col-md-12">
                     <button class="btn btn-success" id="btnCreateNewTag"><i class="icon-plus icon-white"></i>&nbsp;Add tag</button>
-                    <button class="btn" id="btnRenameSelectedTag">Rename tag</button>
+                    <button class="btn btn-default" id="btnRenameSelectedTag">Rename tag</button>
                     <button class="btn btn-danger" id="btnDeleteSelectedTag"><i class="icon-remove icon-white"></i>&nbsp;Delete tag</button>
                 </div>
             </div>
 
             <div class="row-fluid">
-                <div class="span12">
+                <div class="col-md-12">
                     <div id="tagContainer">
                         <img:spinner />
                     </div>
@@ -40,7 +40,7 @@
             </div>
         </div>
     </div>
-    <div class="span8">
+    <div class="col-md-8">
         <div class="well well-small">
         </div>
     </div>
@@ -48,7 +48,7 @@
 </body>
 </html>
 
-<r:script>
+<script>
 
     $(document).ready(function() {
 
@@ -174,5 +174,5 @@
 
     }
 
-</r:script>
+</script>
 

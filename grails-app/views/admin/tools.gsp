@@ -11,10 +11,17 @@
     <content tag="pageTitle">Tools</content>
     <content tag="adminButtonBar" />
 
+    <g:if test="${flash.message}">
+        <div class="alert alert-success" style="display: block">${flash.message}</div>
+    </g:if>
+    <g:if test="${flash.errorMessage}">
+        <div class="alert alert-danger" style="display: block">${flash.errorMessage}</div>
+    </g:if>
+
     <table class="table">
         <tr>
             <td>
-                <button id="btnImportFromLocalInbox" class="btn">Import images from local incoming directory</button>
+                <button id="btnImportFromLocalInbox" class="btn btn-default">Import images from local incoming directory</button>
             </td>
             <td>
                 Imports image files from the designated incoming server directory ("${grailsApplication.config.imageservice.imagestore.inbox}")
@@ -22,7 +29,7 @@
         </tr>
         <tr>
             <td>
-                <button id="btnRegenArtifacts" class="btn">Regenerate Image Artifacts</button>
+                <button id="btnRegenArtifacts" class="btn btn-default">Regenerate Image Artifacts</button>
             </td>
             <td>
                 Regenerate all tiles and thumbnails for all images in the repository. Progress can be tracked on the dashboard.
@@ -30,7 +37,7 @@
         </tr>
         <tr>
             <td>
-                <button id="btnRegenThumbnails" class="btn">Regenerate Image Thumbnails</button>
+                <button id="btnRegenThumbnails" class="btn btn-default">Regenerate Image Thumbnails</button>
             </td>
             <td>
                 Regenerate just thumbnails for all images in the repository. Progress can be tracked on the dashboard.
@@ -39,7 +46,7 @@
 
         <tr>
             <td>
-                <button id="btnRebuildKeywords" class="btn">Rebuild Keywords</button>
+                <button id="btnRebuildKeywords" class="btn btn-default">Rebuild Keywords</button>
             </td>
             <td>
                 Rebuild the synthetic keywords based on image tags (used for fast searching)
@@ -48,16 +55,16 @@
 
         <tr>
             <td>
-                <button id="btnDeleteIndex" class="btn">Re-initialise Index</button>
+                <button id="btnDeleteIndex" class="btn btn-danger">Re-initialise Index</button>
             </td>
             <td>
-                Reinitialize the index
+                Delete and reinitialize the index (creates an empty index)
             </td>
         </tr>
 
         <tr>
             <td>
-                <button id="btnReindexAllImages" class="btn">Reindex All Images</button>
+                <button id="btnReindexAllImages" class="btn btn-default">Reindex All Images</button>
             </td>
             <td>
                 Rebuild the full text index used for searching for images
@@ -66,7 +73,23 @@
 
         <tr>
             <td>
-                <button id="btnSearchIndex" class="btn">Search image index</button>
+                <button id="btnRematchLicencesAllImages" class="btn btn-default">Rematch licences for all images</button>
+            </td>
+            <td>
+                Rematch licences for images
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button id="btnClearQueues" class="btn btn-default">Clear processing queues</button>
+            </td>
+            <td>
+                Clear processing queues (tiling, background queues)
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button id="btnSearchIndex" class="btn btn-default">Search image index</button>
             </td>
             <td>
                 Find image by the elastic search index (Advanced)
@@ -75,18 +98,31 @@
 
         <tr>
             <td>
-                <button id="btnClearCollectoryCache" class="btn">Clear collectory cache</button>
+                <button id="btnClearCollectoryCache" class="btn btn-default">Clear collectory cache</button>
             </td>
             <td>
                 Clear the cache of collectory metadata for data resources (rights, license etc)
             </td>
         </tr>
 
+        <tr>
+            <td>
+                <button id="btnMissingImagesCheck" class="btn btn-default">Missing images check</button>
+            </td>
+            <td>
+                Missing images report
+            </td>
+        </tr>
+
     </table>
-</body>
-<r:script>
+<script>
 
     $(document).ready(function() {
+
+        $("#btnMissingImagesCheck").click(function(e) {
+            e.preventDefault();
+            window.location = "${createLink(action:'checkForMissingImages')}";
+        });
 
         $("#btnRegenArtifacts").click(function(e) {
             e.preventDefault();
@@ -104,6 +140,16 @@
             e.preventDefault();
             $.ajax("${createLink(controller:'webService', action:'scheduleKeywordRegeneration')}").done(function() {
             });
+        });
+
+        $("#btnRematchLicencesAllImages").click(function(e) {
+            e.preventDefault();
+            window.location = "${createLink(action:'rematchLicenses')}";
+        });
+
+        $("#btnClearQueues").click(function(e) {
+            e.preventDefault();
+            window.location = "${createLink(action:'clearQueues')}";
         });
 
         $("#btnImportFromLocalInbox").click(function(e) {
@@ -133,5 +179,7 @@
         });
     });
 
-</r:script>
+</script>
+</body>
+
 </html>

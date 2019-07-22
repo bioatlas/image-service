@@ -1,6 +1,6 @@
 package au.org.ala.images
 
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
+import grails.web.servlet.mvc.GrailsParameterMap
 import org.springframework.web.context.request.RequestContextHolder
 
 import javax.servlet.http.HttpSession
@@ -13,20 +13,47 @@ class SearchService {
 
     public static final String SEARCH_CRITERIA_SESSION_KEY = "session.key.searchCriteria"
 
-    public QueryResults<Image> simpleSearch(String query, GrailsParameterMap params) {
-        return elasticSearchService.simpleImageSearch(query, params)
+    QueryResults<Image> search(GrailsParameterMap params) {
+        return elasticSearchService.simpleImageSearch(getSearchCriteriaList(), params)
     }
 
-    public QueryResults<Image> findImagesByMetadata(String metaDataKey, List values, GrailsParameterMap params) {
+    def facet(GrailsParameterMap params) {
+        return elasticSearchService.simpleFacetSearch(getSearchCriteriaList(), params)
+    }
+
+    QueryResults<Image> download(GrailsParameterMap params, OutputStream output) {
+        return elasticSearchService.simpleImageDownload(getSearchCriteriaList(), params, output)
+    }
+
+    QueryResults<Image> findImagesByMetadata(String metaDataKey, List values, GrailsParameterMap params) {
         return elasticSearchService.searchByMetadata(metaDataKey, values, params)
     }
 
-    def QueryResults<Image> searchUsingCriteria(GrailsParameterMap params) {
-        return elasticSearchService.searchUsingCriteria(searchCriteriaList, params)
+    QueryResults<Image> findImagesByKeyword(String keyword, GrailsParameterMap params) {
+        def imageKeywords = ImageKeyword.findAllByKeyword(keyword, [max: params.max?:100,  offset: params.offset?:0])
+        def queryResults = new QueryResults<Image>()
+        queryResults.list = []
+        if (imageKeywords){
+            imageKeywords.each { imageKeyWord ->
+                queryResults.list << imageKeyWord.image
+            }
+        }
+        queryResults.totalCount = queryResults.list.size()
+        queryResults
     }
 
-    public QueryResults<Image> allImages(GrailsParameterMap params) {
-        return elasticSearchService.simpleImageSearch("*", params)
+    QueryResults<Image> findImagesByTagID(String tagID, GrailsParameterMap params) {
+        def tag = Tag.findById(tagID)
+        def queryResults = new QueryResults<Image>()
+        queryResults.list = []
+        if (tag){
+            def imagetags = ImageTag.findAllByTag(tag, [max: params.max?:100,  offset: params.offset?:0])
+            imagetags.each { imagetag ->
+                queryResults.list << imagetag.image
+            }
+        }
+        queryResults.totalCount = queryResults.list.size()
+        queryResults
     }
 
     def findImagesByOriginalFilename(String filename, GrailsParameterMap params) {
@@ -46,7 +73,7 @@ class SearchService {
         return results
     }
 
-    public void saveSearchCriteria(String id, GrailsParameterMap params) {
+    void saveSearchCriteria(String id, GrailsParameterMap params) {
         def list = getSearchCriteriaList()
         def existing = list.find { it.id == id }
         if (existing) {
@@ -92,7 +119,7 @@ class SearchService {
         return value
     }
 
-    public SearchCriteria addSearchCriteria(GrailsParameterMap params) {
+    SearchCriteria addSearchCriteria(GrailsParameterMap params) {
 
         def criteriaDefinition = SearchCriteriaDefinition.get(params.int("searchCriteriaDefinitionId"))
 
@@ -103,23 +130,25 @@ class SearchService {
 
             if (value) {
                 def id = UUID.randomUUID().toString()
-                def criteria = new SearchCriteria(id: id, criteriaDefinition: criteriaDefinition, value: value)
+                criteriaDefinition = new SearchCriteria(id: id, criteriaDefinition: criteriaDefinition, value: value)
 
                 def list = searchCriteriaList
                 if (!list) {
                     list = []
                 }
-                list << criteria
+                list << criteriaDefinition
                 session.setAttribute(SEARCH_CRITERIA_SESSION_KEY, list)
             }
         }
+
+        criteriaDefinition
     }
 
-    public SearchCriteria getSearchCriteria(String id) {
+    SearchCriteria getSearchCriteria(String id) {
         return searchCriteriaList?.find { it.id == id }
     }
 
-    public List<SearchCriteria> getSearchCriteriaList() {
+    List<SearchCriteria> getSearchCriteriaList() {
         def list = session[SEARCH_CRITERIA_SESSION_KEY] as List
         if (!list) {
             list = []
@@ -127,7 +156,7 @@ class SearchService {
         return list
     }
 
-    public void removeSearchCriteria(String id) {
+    void removeSearchCriteria(String id) {
         def list = searchCriteriaList
         list.removeAll {
             it.id == id
@@ -135,7 +164,7 @@ class SearchService {
         session.setAttribute(SEARCH_CRITERIA_SESSION_KEY, list)
     }
 
-    public void removeAllSearchCriteria() {
+    void removeAllSearchCriteria() {
         session.setAttribute(SEARCH_CRITERIA_SESSION_KEY, [])
     }
 

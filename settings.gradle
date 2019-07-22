@@ -1,0 +1,4 @@
+rootProject.name = 'image-service'
+
+//include ':images-client-plugin'
+//project(':images-client-plugin').projectDir = new File(settingsDir,'../images-client-plugin')

@@ -32,7 +32,7 @@
             <tr></tr>
         </table>
     </body>
-    <r:script>
+    <script>
 
         $(document).ready(function() {
 
@@ -105,5 +105,5 @@
             });
         }
 
-    </r:script>
+    </script>
 </html>

@@ -10,15 +10,13 @@
 /tag1/tag2/tag4
         </pre>
 
-        <div class="control-group">
-            <label class="control-label" for="tagfile">Tag file</label>
-            <div class="controls">
-                <input type="file" name="tagfile" id="tagfile" />
-            </div>
+        <div class="form-group">
+            <label class="form-control" for="tagfile">Tag file</label>
+            <input type="file" name="tagfile" id="tagfile" />
         </div>
 
-        <div class="control-group">
-            <button id="btnCancelUpload" class="btn">Cancel</button>
+        <div class="form-group">
+            <button id="btnCancelUpload" class="btn btn-default">Cancel</button>
             <button id="btnUploadTags" type="submit" class="btn btn-primary">Load tags</button>
         </div>
     </g:uploadForm>
@@ -27,7 +25,6 @@
 <script>
     $("#btnCancelUpload").click(function(e) {
         e.preventDefault();
-        imgvwr.hideModal();
+        $('#tagModal').modal('hide');
     });
-
 </script>

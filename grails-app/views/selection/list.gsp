@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <meta name="layout" content="images"/>
+    <meta name="layout" content="main"/>
     <meta name="section" content="home"/>
     <title>Selected Images | ${grailsApplication.config.skin.orgNameLong}</title>
 </head>
@@ -97,7 +97,7 @@
         <g:paginate total="${total}" prev="" next="" />
     </div>
 
-    <r:script>
+    <script>
         $(document).ready(function() {
 
             $(".btnRemoveFromSelection").click(function(e) {
@@ -147,7 +147,7 @@
 
         });
 
-    </r:script>
+    </script>
 
 </body>
 </html>

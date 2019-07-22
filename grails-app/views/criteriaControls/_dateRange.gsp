@@ -25,25 +25,31 @@
             <g:set var="evaluator" value="${new SearchCriteriaUtils.DateRangeCriteriaTranslator(value as String)}" />
         </g:if>
 
-        <label class="radio inline" style="white-space: nowrap">
+<div class="radio">
+
+    <div class="radio">
+        <label>
             <g:radio class="radioButton" name="operator" value="lt" checked="${evaluator == null || evaluator?.operator == 'lt' ? 'checked' : ''}"/>
             Before
         </label>
-        <label class="radio inline" style="white-space: nowrap">
+    </div>
+    <div class="radio">
+        <label>
             <g:radio class="radioButton" name="operator" value="gt" checked="${evaluator?.operator == 'gt' ? 'checked' : ''}" />
             After
         </label>
-        <label class="radio inline" style="white-space: nowrap">
+    </div>
+    <div class="radio">
+        <label>
             <g:radio class="radioButton" name="operator" value="bt" checked="${evaluator?.operator == 'bt' ? 'checked' : ''}" />
             Between
         </label>
     </div>
     <div style="margin-top: 15px">
-        <g:textField class="dateValue" name="dateValue1" id="dateValue1" value="${evaluator?.startDate?.format("dd/MM/yyyy")}" />
-
+        <g:textField class="dateValue form-control" name="dateValue1" id="dateValue1" value="${evaluator?.startDate?.format("dd/MM/yyyy")}" />
         <span class="dateRangeOther" style="display: ${evaluator?.operator == 'bt' ? 'inline-block' : 'none'}">
             &nbsp;and&nbsp;
-            <g:textField class="dateValue" name="dateValue2" id="dateValue2" value="${evaluator?.endDate?.format("dd/MM/yyyy")}" />
+            <g:textField class="dateValue  form-control" name="dateValue2" id="dateValue2" value="${evaluator?.endDate?.format("dd/MM/yyyy")}" />
         </span>
     </div>
 </div>

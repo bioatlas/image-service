@@ -34,7 +34,7 @@
     $("#btnAddUserMetaData").click(function(e) {
         e.preventDefault();
         imgvwr.promptForMetadata(function(key, value) {
-            $.ajax("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'addUserMetadataToImage', id: imageInstance.imageIdentifier)}?key=" + key + "&value=" + value).done(function() {
+            $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'webService', action:'addUserMetadataToImage', id: imageInstance.imageIdentifier)}?key=" + key + "&value=" + value).done(function() {
                 if (refreshMetadata) {
                     refreshMetadata($("#tabUserDefined"));
                 }
@@ -45,7 +45,7 @@
     $(".btnDeleteMetadataItem").click(function(e) {
         var metaDataKey = $(this).closest("[metaDataKey]").attr("metaDataKey");
         if (metaDataKey) {
-            $.ajax("${grailsApplication.config.serverName}${createLink(controller:"webService", action: 'removeUserMetadataFromImage', id:imageInstance.imageIdentifier)}?key=" + metaDataKey).done(function(results) {
+            $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:"webService", action: 'removeUserMetadataFromImage', id:imageInstance.imageIdentifier)}?key=" + metaDataKey).done(function(results) {
                 if (refreshMetadata) {
                     refreshMetadata($("#tabUserDefined"));
                 }

@@ -28,7 +28,7 @@
                         <img src="<img:imageThumbUrl imageId="${dupe.image.imageIdentifier}" />" width="100">
                     </td>
                     <td>
-                        <a href="${createLink(controller:'image', action:'list', params:[q:"contentMD5Hash=${dupe.hash}"])}">
+                        <a href="${createLink(controller:'search', action:'list', params:[q:"contentMD5Hash=${dupe.hash}"])}">
                             ${dupe.hash}
                         </a>
                     </td>
@@ -38,14 +38,13 @@
         </table>
 
         <div class="pagination">
-            <g:paginate total="${totalCount}" prev="" next="" />
+            <tb:paginate total="${totalCount}" prev="" next="" />
+%{--            <tb:paginate total="${totalCount}" max="100"--}%
+%{--                         action="ad"--}%
+%{--                         controller="image"--}%
+%{--                         params="${[q:params.q]}"--}%
+%{--            />            --}%
         </div>
     </div>
 </body>
-<r:script>
-
-        $(document).ready(function() {
-        });
-
-</r:script>
 </html>

@@ -1,0 +1,117 @@
+.image-caption, .image-thumbnail {
+    text-align: center;
+}
+
+.row-fluid .thumbnails > li.span2:nth-child(6n+1),
+.row-fluid .thumbnails > li.span3:nth-child(4n+1),
+.row-fluid .thumbnails > li.span4:nth-child(3n+1),
+.row-fluid .thumbnails > li.span6:nth-child(2n+3){ margin-left: 0 !important; }
+
+.thumbnail-button-tray {
+    display: block;
+    margin-bottom: 5px;
+    border: 1px solid #ddd;
+}
+
+input[type=checkbox] { display:none; } /* to hide the checkbox itself */
+input[type=checkbox] + label:before {
+    font-family: FontAwesome, Arial, san-serif;
+    font-size: 14px;
+    display: inline-block;
+    opacity: 0.50;
+}
+
+.selection-header label {
+    margin-bottom: 0;
+}
+
+input[type=checkbox] + label:before { content: "\f096"; } /* unchecked icon */
+input[type=checkbox] + label:before { letter-spacing: 10px; } /* space between checkbox and label */
+
+input[type=checkbox]:checked + label:before {
+    content: "\f046";
+    opacity: 1;
+} /* checked icon */
+input[type=checkbox]:checked + label:before { letter-spacing: 5px; } /* allow space for check mark */
+
+#imagesList {
+    margin:0;
+}
+
+.imgCon {
+    display: inline-block;
+    text-align: center;
+    line-height: 1.3em;
+    background-color: #DDD;
+    color: #DDD;
+    margin: 2px 0 2px 0;
+    position: relative;
+}
+
+.imgCon .meta {
+    opacity: 0.7;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    text-align: left;
+    padding: 4px 6px 2px 8px;
+}
+
+.imgCon .full {
+    color: white;
+    background-color: black;
+    display: none;
+}
+
+.imgCon .brief {
+    color: black;
+    background-color: white;
+}
+
+.imgCon .hover-target {
+    display: none;
+}
+
+.imgCon:hover .full {
+    display: inline-block;
+}
+
+.imgCon:hover .brief {
+    display: none;
+}
+
+.column img {
+    margin-top: 8px;
+    vertical-align: middle;
+
+}
+
+.thumb-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    font-size: 12px;
+    line-height: 14px;
+    color: #fff;
+    padding: 4px 5px;
+}
+
+/* Responsive layout - makes a two column-layout instead of four columns */
+@media screen and (max-width: 800px) {
+    .column {
+        flex: 50%;
+        max-width: 50%;
+    }
+}
+
+/* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+    .column {
+        flex: 100%;
+        max-width: 100%;
+    }
+}

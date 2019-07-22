@@ -29,11 +29,11 @@
             </div>
 
             <g:if test="${results}" >
-                <g:render template="../image/imageThumbnails" model="${[images: results.list, totalImageCount: results.totalCount, allowSelection: true, thumbsTitle:"Search Results' (${results.totalCount} images)"]}" />
+                <g:render template="../search/imageThumbnails" model="${[images: results.list, totalImageCount: results.totalCount, allowSelection: true, thumbsTitle:"Search Results' (${results.totalCount} images)"]}" />
             </g:if>
         </div>
     </body>
-    <r:script>
+    <script>
 
     $(document).ready(function() {
 
@@ -44,5 +44,5 @@
 
     });
 
-    </r:script>
+    </script>
 </html>

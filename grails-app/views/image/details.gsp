@@ -3,87 +3,77 @@
 <!doctype html>
 <html>
     <head>
-        <meta name="layout" content="images"/>
-        <title>${mediaTitle} details | Atlas of Living Australia</title>
+        <meta name="layout" content="main"/>
+        <title>${mediaTitle} - ${imageInstance.title ? imageInstance.title : imageInstance.imageIdentifier}</title>
+        <meta name="breadcrumbs" content="${g.createLink( controller: 'search', action: 'list')}, Images"/>
+        <asset:stylesheet src="application.css" />
+        <asset:stylesheet src="ala/images-client.css" />
         <style>
-
-            .property-value {
-                font-weight: bold;
-            }
-
-            .audiojs {
-                width: 100%;
-            }
-
+            td.property-value { font-weight: bold !important; }
+            .audiojs { width: 100%; }
+            .tab-pane { padding-top: 20px !important; }
+            .tabbable { font-size: 9pt; margin-top:10px; }
+            /*#imageTabs .nav { margin-top:5px; }*/
+            div#main { padding-top: 0px; }
+            /*.leaflet-container { background: #E7E7E7;}*/
         </style>
-        <r:require modules="bootstrap,jstree,audiojs,bootstrap-switch" />
     </head>
-    <body class="content">
+    <body>
         <img:headerContent title="${mediaTitle} details ${imageInstance?.id}">
-            <%
-                pageScope.crumbs = []
-            %>
+            <% pageScope.crumbs = []  %>
         </img:headerContent>
-        <div class="row-fluid">
-            <div class="span4">
-                <div id="image-thumbnail">
-                    <ul class="thumbnails">
-                        <li class="span12">
-                            <div class="thumbnail" style="text-align: center">
-                                <g:if test="${isImage}">
-                                <a href="${grailsApplication.config.serverName}${createLink(action:'view', id:imageInstance.id)}">
-                                    <img src="<img:imageThumbUrl imageId="${imageInstance?.imageIdentifier}"/>" />
-                                </a>
-                                </g:if>
-                                <g:if test="${imageInstance.mimeType?.toLowerCase()?.startsWith("audio/")}">
-                                    <audio src="<img:imageUrl imageId="${imageInstance.imageIdentifier}" />"></audio>
-                                </g:if>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-                <div class="well well-small">
-                    <div id="tagsSection">
-                        Loading&nbsp;<img:spinner />
+        <div class="container-fluid" style="padding-left:1px; padding-top:0px;">
+            <div class="row">
+                <div id="viewerContainerId" class="col-md-9">
+                    <g:if test="${!imageInstance.mimeType.startsWith('image')}">
+                    <div class="col-md-3"></div>
+                    <div class="col-md-6">
+                        <div class="document-icon" style="height: 500px; margin-bottom: 30px;"></div>
+                        <g:if test="${imageInstance.mimeType.startsWith('audio')}">
+                            <audio src="${createLink(controller: 'image', action:'proxyImage', params: [imageId: imageInstance.imageIdentifier])}" preload="auto" />
+                        </g:if>
                     </div>
+                    <div class="col-md-3"></div>
+                    </g:if>
                 </div>
-                <g:if test="${isImage}">
-                <div class="well well-small">
-                    <h4>Thumbnails</h4>
-                    <g:each in="${squareThumbs}" var="thumbUrl">
-                        <a href="${thumbUrl}" target="thumbnail">
-                            <image class="img-polaroid" src="${thumbUrl}" width="50px" title="${thumbUrl}" style="margin: 5px"></image>
-                        </a>
-                    </g:each>
-                </div>
-                </g:if>
-            </div>
-            <div class="span8">
-                <div class="well well-small">
-                    <div class="tabbable">
+                <div id="imageTabs" class="col-md-3">
+                    <div class="tabbable" >
                         <ul class="nav nav-tabs">
                             <li class="active">
-                                <a href="#tabProperties" data-toggle="tab">${mediaTitle} properties</a>
+                                <a href="#tabProperties" data-toggle="tab">${mediaTitle}</a>
                             </li>
                             <li>
                                 <a href="#tabExif" data-toggle="tab">Embedded</a>
                             </li>
                             <li>
-                                <a href="#tabUserDefined" data-toggle="tab">User Defined Metadata</a>
-                            </li>
-                            <li>
                                 <a href="#tabSystem" data-toggle="tab">System</a>
                             </li>
+                            <g:if test="${isImage}">
+                                <li>
+                                    <a href="#tabThumbnails" data-toggle="tab">Thumbnails</a>
+                                </li>
+                            </g:if>
                             <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
                                 <li>
-                                    <a href="#tabAuditMessages" data-toggle="tab">Audit trail</a>
+                                    <a href="#tabAuditMessages" data-toggle="tab">Audit</a>
                                 </li>
                             </auth:ifAnyGranted>
                         </ul>
 
                         <div class="tab-content">
+
                             <div class="tab-pane active" id="tabProperties">
                                 <table class="table table-bordered table-condensed table-striped">
+                                    <g:if test="${imageInstance.dataResourceUid}">
+                                        <tr>
+                                            <td class="property-name">Data resource</td>
+                                            <td class="property-value">
+                                                <a href="${grailsApplication.config.collectory.baseURL}/public/show/${imageInstance.dataResourceUid}">
+                                                    ${resourceLevel.name}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </g:if>
                                     <tr>
                                         <td class="property-name">Image Identifier</td>
                                         <td class="property-value">${imageInstance.imageIdentifier}</td>
@@ -97,32 +87,38 @@
                                         <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="creator"/></td>
                                     </tr>
                                     <tr>
-                                        <td class="property-name">Data resource UID</td>
-                                        <td class="property-value">${imageInstance.dataResourceUid}</td>
+                                        <td class="property-name">Description</td>
+                                        <td class="property-value">${imageInstance.description}</td>
                                     </tr>
-                                    <tr>
-                                        <td class="property-name">Filename</td>
-                                        <td class="property-value">${imageInstance.originalFilename}</td>
-                                    </tr>
+
                                     <g:if test="${imageInstance.parent}">
                                         <tr>
                                             <td>Parent image</td>
                                             <td imageId="${imageInstance.parent.id}">
-                                                <g:link controller="image" action="details" id="${imageInstance.parent.id}">${imageInstance.parent.originalFilename ?: imageInstance.parent.id}</g:link>
+                                                <g:link controller="image" action="details" id="${imageInstance.parent.imageIdentifier}">${imageInstance.parent.originalFilename ?: imageInstance.parent.imageIdentifier}</g:link>
                                                 <i class="icon-info-sign image-info-button"></i>
                                             </td>
                                         </tr>
                                     </g:if>
                                     <g:if test="${isImage}">
-                                    <tr>
-                                        <td class="property-name">Dimensions (w x h)</td>
-                                        <td class="property-value">${imageInstance.width} x ${imageInstance.height}</td>
-                                    </tr>
+                                        <tr>
+                                            <td class="property-name">Zoom levels</td>
+                                            <td class="property-value">${imageInstance.zoomLevels}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="property-name">Linear scale</td>
+                                            <td class="property-value">
+                                                <g:if test="${imageInstance.mmPerPixel}">
+                                                    ${imageInstance.mmPerPixel} mm per pixel
+                                                    <button id="btnResetLinearScale" type="button" class="btn btn-sm btn-default pull-right" title="Reset calibation">
+                                                        <i class="glyphicon glyphicon-remove"></i></button>
+                                                </g:if>
+                                                <g:else>
+                                                    &lt;not calibrated&gt;
+                                                </g:else>
+                                            </td>
+                                        </tr>
                                     </g:if>
-                                    <tr>
-                                        <td class="property-name">File size</td>
-                                        <td class="property-value"><img:sizeInBytes size="${imageInstance.fileSize}" /></td>
-                                    </tr>
                                     <tr>
                                         <td class="property-name">Date uploaded</td>
                                         <td class="property-value"><img:formatDateTime date="${imageInstance.dateUploaded}" /></td>
@@ -138,30 +134,110 @@
                                         </tr>
                                     </g:if>
                                     <tr>
-                                        <td class="property-name">Mime type</td>
-                                        <td class="property-value">${imageInstance.mimeType}</td>
-                                    </tr>
-                                    <g:if test="${isImage}">
-                                    <tr>
-                                        <td class="property-name">Zoom levels</td>
-                                        <td class="property-value">${imageInstance.zoomLevels}</td>
+                                        <td class="property-name">Rights</td>
+                                        <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="rights"/></td>
                                     </tr>
                                     <tr>
-                                        <td class="property-name">Linear scale</td>
+                                        <td class="property-name">Rights holder</td>
+                                        <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="rightsHolder"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="property-name">Licence</td>
                                         <td class="property-value">
-                                            <g:if test="${imageInstance.mmPerPixel}">
-                                            ${imageInstance.mmPerPixel} mm per pixel
-                                            <button id="btnResetLinearScale" type="button" class="btn btn-small pull-right" title="Reset calibation"><i class="icon-remove"></i></button>
+                                            ${imageInstance.license}
+                                            <g:if test="${imageInstance.recognisedLicense}">
+                                               <a href="${imageInstance.recognisedLicense.url}" title="${imageInstance.recognisedLicense.name +  ' (' + imageInstance.recognisedLicense.acronym + ')'}">
+                                                <img src="${imageInstance.recognisedLicense.imageUrl}">
+                                               </a>
                                             </g:if>
                                             <g:else>
-                                                &lt;not calibrated&gt;
+                                                <img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="license"/>
                                             </g:else>
                                         </td>
                                     </tr>
+                                    <g:if test="${subimages}">
+                                        <tr>
+                                            <td>Sub-images</td>
+                                            <td>
+                                                <ul>
+                                                    <g:each in="${subimages}" var="subimage">
+                                                        <li imageId="${subimage.id}">
+                                                            <g:link controller="image" action="details" id="${subimage.imageIdentifier}">${subimage.originalFilename ?: subimage.imageIdentifier}</g:link>
+                                                            <i class="icon-info-sign image-info-button"></i>
+                                                        </li>
+                                                    </g:each>
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    </g:if>
+
+%{--                                    <tr>--}%
+%{--                                        <td class="property-name">Harvested as occurrence record?</td>--}%
+%{--                                        <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">--}%
+%{--                                            <td>--}%
+%{--                                                <g:checkBox name="chkIsHarvestable" data-size="small" data-on-text="Yes" data-off-text="No" checked="${imageInstance.harvestable}" />--}%
+%{--                                            </td>--}%
+%{--                                        </auth:ifAnyGranted>--}%
+%{--                                        <auth:ifNotGranted roles="${CASRoles.ROLE_ADMIN}">--}%
+%{--                                            <td class="property-value">${imageInstance.harvestable ? "Yes" : "No"}</td>--}%
+%{--                                        </auth:ifNotGranted>--}%
+%{--                                    </tr>--}%
+
+                                    <tr>
+                                        <td colspan="2">
+                                            <g:link controller="webService" action="getImageInfo" params="[id:imageInstance.imageIdentifier]" title="View JSON metadata" class="btn btn-default">
+                                                <i class="glyphicon glyphicon-wrench"> </i>
+                                            </g:link>
+
+                                            <g:if test="${isImage}">
+                                                <button class="btn btn-default" id="btnViewImage" title="View zoomable image"><span class="glyphicon glyphicon-eye-open"> </span></button>
+                                            </g:if>
+                                            <a class="btn btn-default" href="${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:'proxyImage', id:imageInstance.id, params:[contentDisposition: 'true'])}" title="Download full image" target="imageWindow"><i class="glyphicon glyphicon-download-alt"></i></a>
+
+                                            <g:if test="${isAdminView}">
+                                                <button class="btn btn-default" id="btnRegen" title="Regenerate artifacts"><i class="glyphicon glyphicon-refresh"></i></button>
+                                                <button class="btn btn-danger" id="btnDeleteImage" title="Delete image (admin)"><i class="glyphicon glyphicon-remove  glyphicon-white"></i></button>
+                                            </g:if>
+                                            <g:elseif test="${isAdmin}">
+                                                <g:link class="btn btn-danger" controller="admin" action="image" params="[imageId: imageInstance.imageIdentifier]">Admin view</g:link>
+                                            </g:elseif>
+
+                                        </td>
+                                    </tr>
+                                </table>
+                                <div id="tagsSection"></div>
+                            </div>
+                            <div class="tab-pane" id="tabExif" metadataSource="${au.org.ala.images.MetaDataSourceType.Embedded}">
+                                <div class="metadataSource-container"></div>
+                            </div>
+                            <div class="tab-pane" id="tabSystem" metadataSource="${au.org.ala.images.MetaDataSourceType.SystemDefined}" >
+                                <table class="table table-bordered table-condensed table-striped">
+                                    <tr>
+                                        <td class="property-name">Data resource UID</td>
+                                        <td class="property-value">${imageInstance.dataResourceUid}</td>
+                                    </tr>
+                                    <g:if test="${isImage}">
+                                        <tr>
+                                            <td class="property-name">Dimensions (w x h)</td>
+                                            <td class="property-value">${imageInstance.width} x ${imageInstance.height}</td>
+                                        </tr>
                                     </g:if>
                                     <tr>
+                                        <td class="property-name">File size</td>
+                                        <td class="property-value"><img:sizeInBytes size="${imageInstance.fileSize}" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="property-name">Mime type</td>
+                                        <td class="property-value">${imageInstance.mimeType}</td>
+                                    </tr>
+
+                                    <tr>
                                         <td class="property-name">${mediaTitle} URL</td>
-                                        <td class="property-value"><img:imageUrl imageId="${imageInstance.imageIdentifier}" />
+                                        <td class="property-value">
+                                            <a href="${img.imageUrl([imageId: imageInstance.imageIdentifier])}">
+                                                <img:imageUrl imageId="${imageInstance.imageIdentifier}" />
+                                            </a>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td class="property-name">MD5 Hash</td>
@@ -175,229 +251,167 @@
                                         <td class="property-name">Size on disk (including all artifacts)</td>
                                         <td class="property-value"><img:sizeInBytes size="${sizeOnDisk}" /></td>
                                     </tr>
-                                    <tr>
-                                        <td class="property-name">Rights</td>
-                                        <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="rights"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="property-name">Rights holder</td>
-                                        <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="rightsHolder"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="property-name">Licence</td>
-                                        <td class="property-value"><img:imageMetadata image="${imageInstance}" resource="${resourceLevel}" field="license"/></td>
-                                    </tr>
-                                    <g:if test="${subimages}">
-                                        <tr>
-                                            <td>Sub-images</td>
-                                            <td>
-                                                <ul>
-                                                    <g:each in="${subimages}" var="subimage">
-                                                        <li imageId="${subimage.id}">
-                                                            <g:link controller="image" action="details" id="${subimage.id}">${subimage.originalFilename ?: subimage.id}</g:link>
-                                                            <i class="icon-info-sign image-info-button"></i>
-                                                        </li>
-                                                    </g:each>
-                                                </ul>
-                                            </td>
-                                        </tr>
-                                    </g:if>
-
-                                    <tr>
-                                        <td class="property-name">Harvested as occurrence record?</td>
-                                        <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
-                                            <td>
-                                                <g:checkBox name="chkIsHarvestable" data-size="small" data-on-text="Yes" data-off-text="No" checked="${imageInstance.harvestable}" />
-                                            </td>
-                                        </auth:ifAnyGranted>
-                                        <auth:ifNotGranted roles="${CASRoles.ROLE_ADMIN}">
-                                            <td class="property-value">${imageInstance.harvestable ? "Yes" : "No"}</td>
-                                        </auth:ifNotGranted>
-                                    </tr>
-
-                                    <tr>
-                                        <td colspan="2">
-
-                                            <g:link controller="webService" action="getImageInfo" params="[id:imageInstance.imageIdentifier]" title="View JSON metadata" class="btn btn-small">
-                                                <i class="icon-wrench"> </i>
-                                            </g:link>
-
-                                            <g:if test="${isImage}">
-                                                <button class="btn btn-small" id="btnViewImage" title="View zoomable image"><i class="icon-eye-open"></i></button>
-                                            </g:if>
-                                            <a class="btn btn-small" href="${grailsApplication.config.serverName}${createLink(controller:'image', action:'proxyImage', id:imageInstance.id, params:[contentDisposition: 'true'])}" title="Download full image" target="imageWindow"><i class="icon-download-alt"></i></a>
-
-                                            <auth:ifAnyGranted roles="${au.org.ala.web.CASRoles.ROLE_USER}, ${au.org.ala.web.CASRoles.ROLE_USER}">
-                                                <g:if test="${albums}">
-                                                    <button class="btn btn-small" title="Add this image to an album" id="btnAddToAlbum"><i class="icon-book"></i></button>
-                                                </g:if>
-                                            </auth:ifAnyGranted>
-
-                                            <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
-                                                <button class="btn btn-small" id="btnRegen" title="Regenerate artifacts"><i class="icon-refresh"></i></button>
-                                            </auth:ifAnyGranted>
-
-                                            <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}" creatorUserId="${imageInstance.uploader}">
-                                                <button class="btn btn-small btn-danger" id="btnDeleteImage" title="Delete image (admin)"><i class="icon-remove icon-white"></i></button>
-                                            </auth:ifAnyGranted>
-                                            <auth:ifNotGranted roles="${CASRoles.ROLE_ADMIN}">
-                                                <img:userIsUploader image="${imageInstance}">
-                                                    <button class="btn btn-small btn-danger" id="btnDeleteImage" title="Delete your image"><i class="icon-remove icon-white"></i></button>
-                                                </img:userIsUploader>
-                                            </auth:ifNotGranted>
-
-
-                                        </td>
-                                    </tr>
-
                                 </table>
+
+                                <div class="metadataSource-container"></div>
                             </div>
-                            <div class="tab-pane" id="tabExif" metadataSource="${au.org.ala.images.MetaDataSourceType.Embedded}">
-                            </div>
-                            <div class="tab-pane" id="tabUserDefined" metadataSource="${au.org.ala.images.MetaDataSourceType.UserDefined}">
-                            </div>
-                            <div class="tab-pane" id="tabSystem" metadataSource="${au.org.ala.images.MetaDataSourceType.SystemDefined}">
+                            <div class="tab-pane" id="tabThumbnails">
+                                <ul class="list-unstyled list-inline">
+                                    <g:each in="${squareThumbs}" var="thumbUrl">
+                                        <li>
+                                            <a href="${thumbUrl}" target="thumbnail">
+                                                <img class="thumbnail" src="${thumbUrl}" style="width:100px;" title="${thumbUrl}" style="margin: 5px"/>
+                                            </a>
+                                        </li>
+                                    </g:each>
+                                </ul>
                             </div>
                             <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
-                            <div class="tab-pane" id="tabAuditMessages">
-                            </div>
+                                <div class="tab-pane" id="tabAuditMessages">
+                                    <div class="metadataSource-container"></div>
+                                </div>
                             </auth:ifAnyGranted>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </body>
-</html>
 
-<r:script>
+        <asset:javascript src="ala/images-client.js"/>
+        <asset:javascript src="audiojs/audio.min.js"/>
 
-    function refreshMetadata(tabDiv) {
-        var dest = $(tabDiv);
-        dest.html("Loading...");
-        var source = dest.attr("metadataSource");
-        $.ajax("${grailsApplication.config.serverName}${createLink(controller:'image', action:'imageMetadataTableFragment', id: imageInstance.id)}?source=" + source).done(function(content) {
-            dest.html(content);
-        });
-    }
+    <script>
 
-    <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
+        function refreshMetadata(tabDiv) {
+            var dest = $(tabDiv);
+            dest.find('.metadataSource-container').html("Loading...");
+            var source = dest.attr("metadataSource");
+            $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:'imageMetadataTableFragment', id: imageInstance.id)}?source=" + source).done(function(content) {
+                dest.find('.metadataSource-container').html(content);
+            });
+        }
+
+        <auth:ifAnyGranted roles="${CASRoles.ROLE_ADMIN}">
 
         function refreshAuditTrail() {
-            $.ajax("${grailsApplication.config.serverName}${createLink(controller: 'image', action:'imageAuditTrailFragment', id: imageInstance.id)}").done(function(content) {
+            $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller: 'image', action:'imageAuditTrailFragment', id: imageInstance.id)}").done(function(content) {
                 $("#tabAuditMessages").html(content);
             });
         }
 
-    </auth:ifAnyGranted>
+        </auth:ifAnyGranted>
 
-    $(document).ready(function() {
-
-        $('input:checkbox').bootstrapSwitch();
-
-        $('input:checkbox').on('switchChange.bootstrapSwitch', function(event, state) {
-            var name = $(this).attr("name");
-            if (name) {
-                if (name == 'chkIsHarvestable') {
-                    $.ajax("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'setHarvestable', params: [imageId: imageInstance.imageIdentifier])}").done(function(data) {
-                        console.log(data);
-                    });
-                }
-            }
-        });
-
-        audiojs.createAll();
-
-        $("#btnAddToAlbum").click(function(e) {
-
-            e.preventDefault();
-            imgvwr.selectAlbum(function(albumId) {
-                $.ajax("${grailsApplication.config.serverName}${createLink(controller:'album', action:'ajaxAddImageToAlbum')}/" + albumId + "?imageId=${imageInstance.id}").done(function(result) {
-                    if (result.success) {
-                    }
-                });
-            });
-
-        });
-
-        $("#btnResetLinearScale").click(function(e) {
-            e.preventDefault();
-            imgvwr.areYouSure({
-                title:"Reset calibration for this image?",
-                message:"Are you sure you wish to reset the linear scale for this image?",
-                affirmativeAction: function() {
-                    var url = "${grailsApplication.config.serverName}${createLink(controller:'webService', action:'resetImageCalibration')}?imageId=${imageInstance.imageIdentifier}";
-                    $.ajax(url).done(function(result) {
-                        window.location.reload(true);
-                    });
-                }
-            });
-
-        });
-
-        $('a[data-toggle="tab"]').on('shown', function (e) {
-            var dest = $($(this).attr("href"));
-            if (dest.attr("metadataSource")) {
-                refreshMetadata(dest);
-            } else {
-                if (dest.attr("id") == "tabAuditMessages") {
-                    refreshAuditTrail();
-                }
-            }
-        });
-
-        $("#btnViewImage").click(function(e) {
-            e.preventDefault();
-            window.location = "${grailsApplication.config.serverName}${createLink(controller:'image', action:'view', id: imageInstance.id)}";
-        });
-
-        $("#btnRegen").click(function(e) {
-            e.preventDefault();
-            $.ajax("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'scheduleArtifactGeneration', id: imageInstance.imageIdentifier)}").done(function() {
-                window.location = this.location.href; // reload
-            });
-        });
-
-        $("#btnDeleteImage").click(function(e) {
-            e.preventDefault();
+        $(document).ready(function() {
 
             var options = {
-                message: "Warning! This operation cannot be undone. Are you sure you wish to permanently delete this image?",
-                affirmativeAction: function() {
-                    $.ajax("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'deleteImage', id: imageInstance.imageIdentifier)}").done(function() {
-                        window.location = "${grailsApplication.config.serverName}${createLink(controller:'image', action:'list')}";
-                    });
-                }
+                auxDataUrl : "${auxDataUrl ? auxDataUrl : ''}",
+                imageServiceBaseUrl : "${grailsApplication.config.grails.serverURL}${grailsApplication.config.contextPath}",
+                imageClientBaseUrl : "${grailsApplication.config.grails.serverURL}${grailsApplication.config.contextPath}",
+                zoomFudgeFactor: 0.65
             };
 
-            imgvwr.areYouSure(options);
-        });
+            var screenHeight = $(window).height();
+            $('#viewerContainerId').css('height', (screenHeight - 172) + 'px');
 
-        $(".image-info-button").each(function() {
-            var imageId = $(this).closest("[imageId]").attr("imageId");
-            if (imageId) {
-                $(this).qtip({
-                    content: {
-                        text: function(event, api) {
-                            $.ajax("${grailsApplication.config.serverName}${createLink(controller:'image', action:"imageTooltipFragment")}/" + imageId).then(function(content) {
-                                api.set("content.text", content);
-                            },
-                            function(xhr, status, error) {
-                                api.set("content.text", status + ": " + error);
-                            });
-                        }
+
+            <g:if test="${imageInstance.mimeType.startsWith('image')}">
+            imgvwr.viewImage($("#viewerContainerId"), '${imageInstance.imageIdentifier}', "", "", options);
+            </g:if>
+            <g:elseif test="${imageInstance.mimeType.startsWith('audio')}">
+            $('#viewerContainerId .document-icon').css('background-image', 'url("${grailsApplication.config.placeholder.sound.large}")');
+            $('#viewerContainerId .document-icon').css('background-repeat', 'no-repeat');
+            $('#viewerContainerId').css('background-position', 'center');
+            audiojs.createAll();
+            </g:elseif>
+            <g:else>
+            $('#viewerContainerId .document-icon').css('background-image', 'url("${grailsApplication.config.placeholder.document.large}")');
+            $('#viewerContainerId .document-icon').css('background-repeat', 'no-repeat');
+            $('#viewerContainerId .document-icon').css('background-position', 'center');
+            </g:else>
+
+            $("#btnResetLinearScale").click(function(e) {
+                e.preventDefault();
+                imgvwr.areYouSure({
+                    title:"Reset calibration for this image?",
+                    message:"Are you sure you wish to reset the linear scale for this image?",
+                    affirmativeAction: function() {
+                        var url = "${grailsApplication.config.grails.serverURL}${createLink(controller:'webService', action:'resetImageCalibration')}?imageId=${imageInstance.imageIdentifier}";
+                        $.ajax(url).done(function(result) {
+                            window.location.reload(true);
+                        });
                     }
                 });
-            }
+            });
+
+            $('a[data-toggle="tab"]').on('click', function (e) {
+
+                var dest = $($(this).attr("href"));
+                if (dest.attr("metadataSource")) {
+                    refreshMetadata(dest);
+                } else {
+                    if (dest.attr("id") == "tabAuditMessages") {
+                        refreshAuditTrail();
+                    }
+                }
+            });
+
+            $("#btnViewImage").click(function(e) {
+                e.preventDefault();
+                window.location = "${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:'view', id: imageInstance.imageIdentifier)}";
+            });
+
+            $("#btnRegen").click(function(e) {
+                e.preventDefault();
+
+                $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:'scheduleArtifactGeneration', id: imageInstance.imageIdentifier)}").done(function(data) {
+                    console.log(data);
+                    alert('Regeneration scheduled - ' + data.message);
+                }).fail(function(){
+                    alert("Problem scheduling regeneration");
+                });
+            });
+
+            $("#btnDeleteImage").click(function(e) {
+                e.preventDefault();
+                var options = {
+                    content: "Warning! This operation cannot be undone. Are you sure you wish to permanently delete this image?",
+                    affirmativeAction: function() {
+                        $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:'deleteImage', id: imageInstance.imageIdentifier)}").done(function() {
+                            window.location = "${grailsApplication.config.grails.serverURL}${createLink(controller:'search', action:'list')}";
+                        });
+                    }
+                };
+                imgvwr.areYouSure(options);
+            });
+
+            $(".image-info-button").each(function() {
+                var imageId = $(this).closest("[imageId]").attr("imageId");
+                if (imageId) {
+                    $(this).qtip({
+                        content: {
+                            text: function(event, api) {
+                                $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'image', action:"imageTooltipFragment")}/" + imageId).then(function(content) {
+                                        api.set("content.text", content);
+                                    },
+                                    function(xhr, status, error) {
+                                        api.set("content.text", status + ": " + error);
+                                    });
+                            }
+                        }
+                    });
+                }
+            });
+
+            loadTags();
         });
 
-        loadTags();
-    });
+        function loadTags() {
+            $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller: 'image', action:'tagsFragment', id:imageInstance.id)}").done(function(html) {
+                $("#tagsSection").html(html);
+            });
+        }
 
-    function loadTags() {
-        $.ajax("${grailsApplication.config.serverName}${createLink(action:'tagsFragment',id:imageInstance.id)}").done(function(html) {
-            $("#tagsSection").html(html);
-        });
-    }
+    </script>
+    </body>
+</html>
 
-</r:script>

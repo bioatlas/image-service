@@ -8,7 +8,7 @@
     <div class="control-group">
         <div class="controls">
             <button class="btn btn-danger" id="btnDeleteTag">Delete Tag</button>
-            <button class="btn" id="btnCancelDeleteTag">Cancel</button>
+            <button class="btn btn-default" id="btnCancelDeleteTag">Cancel</button>
         </div>
     </div>
 </div>
@@ -16,13 +16,13 @@
 
     $("#btnCancelDeleteTag").click(function(e) {
         e.preventDefault();
-        imgvwr.hideModal();
+        $('#tagModal').modal('hide');
     });
 
     $("#btnDeleteTag").click(function(e) {
         e.preventDefault();
         $.ajax("${createLink(controller:'webService', action:'deleteTag')}?tagId=${tagInstance.id}").done(function() {
-            imgvwr.hideModal();
+            $('#tagModal').modal('hide');
         });
     });
 

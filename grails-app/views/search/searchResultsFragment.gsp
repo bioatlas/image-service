@@ -3,10 +3,10 @@
         def toolButtons = []
         toolButtons << [label: "Select all matching images (${totalCount})", id:"btnSelectAllImages"]
     %>
-    <g:render template="/image/imageThumbnails" model="${[images: imageList, totalImageCount: totalCount, allowSelection: true, selectedImageMap: selectedImageMap, thumbsTitle: "${totalCount} matching images", toolButtons: toolButtons]}" />
+    <g:render template="/search/imageThumbnails"
+              model="${[images: imageList, totalImageCount: totalCount, allowSelection: true, selectedImageMap: selectedImageMap, thumbsTitle: "${totalCount} matching images", toolButtons: toolButtons]}" />
 </div>
 <script>
-
     $("#btnSelectAllImages").click(function(e) {
         e.preventDefault();
         imgvwr.showSpinner("Selecting images...")
@@ -15,5 +15,4 @@
             location.reload(true);
         });
     });
-
 </script>

@@ -32,37 +32,41 @@
         <button id="btnSaveCriteria" type="button" class="btn btn-small btn-primary pull-right">Add criteria</button>
     </div>
 
+    <script type="text/javascript">
+
+        $( document ).ready(function() {
+
+            $("#cmbCriteria").on('change', function(e) {
+                $("#criteriaDetail").html(loadingSpinner());
+                var criteriaDefinitionId = $(this).val();
+                if (criteriaDefinitionId == 0) {
+                    $("#criteriaDetail").html("");
+                    $("#addButtonDiv").css('display', 'none');
+                } else {
+                    $("#criteriaDetail").html(loadingSpinner());
+                    $.ajax("${createLink(action: "criteriaDetailFragment")}?searchCriteriaDefinitionId=" + criteriaDefinitionId).done(function(content) {
+                        $("#addButtonDiv").css("display", "block");
+                        $("#criteriaDetail").html(content);
+                    });
+                }
+            });
+
+            $("#btnSaveCriteria").on('click', function(e) {
+                var formData = $("#criteriaForm").serialize();
+                var errorDiv = $("#errorMessageDiv");
+                errorDiv.css("display",'none');
+                $.post('${createLink(action:'ajaxAddSearchCriteria')}',formData, function(data) {
+                    if (data.errorMessage) {
+                        errorDiv.html(data.errorMessage);
+                        errorDiv.css("display",'block');
+                    } else {
+                        imgvwr.hideModal();
+                    }
+                });
+            });
+
+        });
+
+    </script>
 </div>
 
-<script type="text/javascript">
-
-    $("#cmbCriteria").change(function(e) {
-        $("#criteriaDetail").html(loadingSpinner());
-        var criteriaDefinitionId = $(this).val();
-        if (criteriaDefinitionId == 0) {
-            $("#criteriaDetail").html("");
-            $("#addButtonDiv").css('display', 'none');
-        } else {
-            $("#criteriaDetail").html(loadingSpinner());
-            $.ajax("${createLink(action: "criteriaDetailFragment")}?searchCriteriaDefinitionId=" + criteriaDefinitionId).done(function(content) {
-                $("#addButtonDiv").css("display", "block");
-                $("#criteriaDetail").html(content);
-            });
-        }
-    });
-
-    $("#btnSaveCriteria").click(function(e) {
-        var formData = $("#criteriaForm").serialize();
-        var errorDiv = $("#errorMessageDiv");
-        errorDiv.css("display",'none');
-        $.post('${createLink(action:'ajaxAddSearchCriteria')}',formData, function(data) {
-            if (data.errorMessage) {
-                errorDiv.html(data.errorMessage);
-                errorDiv.css("display",'block');
-            } else {
-                imgvwr.hideModal();
-            }
-        });
-    });
-
-</script>

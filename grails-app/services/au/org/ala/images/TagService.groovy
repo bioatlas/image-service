@@ -41,7 +41,7 @@ class TagService {
             }
         }
 
-        return tag
+        tag
     }
 
     def moveTag(Tag target, Tag newParent) {
@@ -132,8 +132,16 @@ class TagService {
             imageTags.each { imageTag ->
                 imageTag.delete()
             }
-
             t.delete()
+        }
+    }
+
+    def updateTags(Image image, List tags, String userId){
+        if(tags) {
+            tags.each { String tagPath ->
+                def tag = createTagByPath(tagPath)
+                attachTagToImage(image, tag, userId)
+            }
         }
     }
 
@@ -230,7 +238,6 @@ class TagService {
         imageKeywords.each { keyword ->
             image.addToKeywords(new ImageKeyword(image: image, keyword: keyword))
         }
-
     }
 
     def loadTagsFromFile(MultipartFile file) {

@@ -1,6 +1,6 @@
 package au.org.ala.images
 
-import org.codehaus.groovy.grails.web.servlet.mvc.GrailsParameterMap
+import grails.web.servlet.mvc.GrailsParameterMap
 
 class DialogController {
 

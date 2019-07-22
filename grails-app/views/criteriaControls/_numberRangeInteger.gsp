@@ -19,26 +19,37 @@
         <g:if test="${value}">
             <g:set var="evaluator" value="${new SearchCriteriaUtils.IntegerCriteriaTranslator(value as String)}" />
         </g:if>
-        <label class="radio inline" style="white-space: nowrap">
-            <g:radio class="radioButton" name="operator" value="eq" checked="${evaluator == null || evaluator?.operator == 'eq' ? 'checked' : ''}"/>
-            Equal to
-        </label>
 
-        <label class="radio inline" style="white-space: nowrap">
-            <g:radio class="radioButton" name="operator" value="gt" checked="${evaluator?.operator == 'gt' ? 'checked' : ''}"/>
-            Greater than or equal to
-        </label>
-        <label class="radio inline" style="white-space: nowrap">
-            <g:radio class="radioButton" name="operator" value="lt" checked="${evaluator?.operator == 'lt' ? 'checked' : ''}" />
-            Less than or equal to
-        </label>
-        <label class="radio inline" style="white-space: nowrap">
-            <g:radio class="radioButton" name="operator" value="bt" checked="${evaluator?.operator == 'bt' ? 'checked' : ''}" />
-            Between
-        </label>
+        <div class="radio">
+            <label>
+                <g:radio class="radioButton" name="operator" value="eq" checked="${evaluator == null || evaluator?.operator == 'eq' ? 'checked' : ''}"/>
+                Equal to
+            </label>
+        </div>
+
+        <div class="radio">
+            <label>
+                <g:radio class="radioButton" name="operator" value="gt" checked="${evaluator?.operator == 'gt' ? 'checked' : ''}"/>
+                Greater than or equal to
+            </label>
+        </div>
+
+        <div class="radio">
+            <label>
+                <g:radio class="radioButton" name="operator" value="lt" checked="${evaluator?.operator == 'lt' ? 'checked' : ''}" />
+                Less than or equal to
+            </label>
+        </div>
+
+        <div class="radio">
+            <label>
+                <g:radio class="radioButton" name="operator" value="bt" checked="${evaluator?.operator == 'bt' ? 'checked' : ''}" />
+                Between
+            </label>
+        </div>
     </div>
     <div style="margin-top: 15px">
-        <g:textField class="input-small" style="margin-left: 20px" name="numberValue" placeholder="Value" value="${evaluator?.value1}"/>
+        <g:textField class="form-control" name="numberValue" placeholder="Value" value="${evaluator?.value1}"/>
         <span class="numberRangeOther" style="display: ${evaluator?.operator == 'bt' ? 'inline-block' : 'none' }">
             &nbsp;and&nbsp;
             <g:textField class="input-small" style="margin-left: 20px" name="numberValue2" placeholder="Value" value="${evaluator?.value2}"/>

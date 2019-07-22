@@ -12,49 +12,30 @@
   - implied. See the License for the specific language governing
   - rights and limitations under the License.
   --}%
-<g:applyLayout name="${grailsApplication.config.skin.layout}">
+<g:applyLayout name="main">
     <head>
-        <style type="text/css">
-
-        .icon-chevron-right {
-            float: right;
-            margin-top: 2px;
-            margin-right: -6px;
-            opacity: .25;
-        }
-
-        </style>
-
-        <r:require modules="bootstrap, application" />
-
+        <title>Admin</title>
+        <meta name="breadcrumbs" content="${g.createLink( controller: 'search', action: 'list')}, Images"/>
     </head>
-
     <body>
-
+        <asset:stylesheet src="application.css" />
         <div class="container-fluid">
-            <legend>
-                <table style="width: 100%">
-                    <tr>
-                        <td><g:link uri="/">Home</g:link><img:navSeparator/><g:link controller="admin" action="index">Administration</g:link><img:navSeparator/><g:pageProperty name="page.pageTitle"/></td>
-                        <td style="text-align: right"><span><g:pageProperty name="page.adminButtonBar"/></span></td>
-                    </tr>
-                </table>
-            </legend>
-
             <div class="row-fluid">
-                <div class="span3">
-                    <ul class="nav nav-list nav-stacked nav-tabs">
+                <div class="col-md-2">
+                    <h1>Admin tools</h1>
+                    <ul class="nav nav-pills nav-stacked">
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'dashboard')}" title="Dashboard" />
-                        <img:menuNavItem href="${createLink(controller: 'image', action: 'upload')}" title="Upload an image" />
+                        <img:menuNavItem href="${createLink(controller: 'admin', action: 'upload')}" title="Upload images" />
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'tools')}" title="Tools" />
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'duplicates')}" title="Duplicates" />
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'searchCriteria')}" title="Search Criteria" />
+                        <img:menuNavItem href="${createLink(controller: 'admin', action: 'licences')}" title="Update Licences" />
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'tags')}" title="Tags" />
                         <img:menuNavItem href="${createLink(controller: 'admin', action: 'settings')}" title="Settings" />
+                        <img:menuNavItem href="${createLink(controller: 'admin', action: 'analytics')}" title="Analytics" />
                     </ul>
                 </div>
-
-                <div class="span9">
+                <div class="col-md-10">
                     <g:layoutBody/>
                 </div>
             </div>

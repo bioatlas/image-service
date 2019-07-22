@@ -1,8 +1,6 @@
 package au.org.ala.images
 
-import au.org.ala.cas.util.AuthenticationUtils
 import groovy.xml.MarkupBuilder
-import org.apache.commons.lang.StringUtils
 
 class ImagesTagLib {
 
@@ -12,6 +10,7 @@ class ImagesTagLib {
     def groovyPageLocator
     def authService
     def searchCriteriaService
+    def collectoryService
 
     /**
      * @attr title
@@ -80,9 +79,7 @@ class ImagesTagLib {
                     mb.mkp.yieldUnescaped(bodyContent)
                 }
             }
-
         }
-
     }
 
     def spinner = { attrs, body ->
@@ -103,9 +100,39 @@ class ImagesTagLib {
     }
 
     def imageThumbUrl = { attrs, body ->
-        if (attrs.imageId) {
+        if (attrs.imageId && attrs.idx) {
+            out << imageService.getImageThumbUrl(attrs.imageId as String, attrs.idx)
+        } else if (attrs.imageId ){
             out << imageService.getImageThumbUrl(attrs.imageId as String)
         }
+    }
+
+    def imageSearchResult = { attrs, body ->
+        if (attrs.image) {
+            if(attrs.image.dataResourceUid){
+                def metadata = collectoryService.getResourceLevelMetadata(attrs.image.dataResourceUid)
+                out << """<div class="thumb-caption caption-detail ${attrs.css?:''}">"""
+                out <<  "<span class='resource-name'>${metadata.name}</span>  <span>${attrs.image.title? ' - ' + attrs.image.title: ''} ${attrs.image.creator ?  ' - ' + attrs.image.creator : ''}</span>"
+                out << '</div>'
+            } else {
+                if(attrs.image.dataResourceUid || attrs.image.title || attrs.image.creator){
+                    out << """<div class="thumb-caption caption-detail ${attrs.css?:''}">"""
+                    out << "${attrs.image.dataResourceUid ? attrs.image.dataResourceUid: ''} ${attrs.image.title ? attrs.image.title :''} ${attrs.image.creator ?  attrs.image.creator : ''}"
+                    out << '</div>'
+                }
+            }
+        }
+    }
+
+    def facetDataResourceResult = { attrs, body ->
+        def metadata = collectoryService.getResourceLevelMetadata(attrs.dataResourceUid)
+        def valueToRender = ""
+        if (metadata &&  metadata.name){
+            valueToRender = metadata.name
+        } else {
+            valueToRender = message(code: attrs.dataResourceUid, default: attrs.dataResourceUid)
+        }
+        out <<  "<span class='resource-name'>${valueToRender}</span>"
     }
 
     def imageSquareThumbUrl = { attrs, body ->
@@ -113,7 +140,6 @@ class ImagesTagLib {
             out << imageService.getImageSquareThumbUrl(attrs.imageId as String, attrs.backgroundColor ?: '')
         }
     }
-
 
     def imageTileBaseUrl = { attrs, body ->
         if (attrs.imageId) {
@@ -243,8 +269,8 @@ class ImagesTagLib {
     def imageMetadata = { attrs, body ->
         if(attrs.image[attrs.field]){
             out << attrs.image[attrs.field]
-        } else if(attrs.resource[attrs.field]){
-            out << attrs.resource[attrs.field] + "<small> (resource level metadata) </small>"
+        } else if(attrs.resource && attrs.resource.imageMetadata && attrs.resource.imageMetadata[attrs.field]){
+            out << attrs.resource.imageMetadata[attrs.field] + "<small> (resource level metadata) </small>"
         }
     }
 

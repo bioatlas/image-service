@@ -28,7 +28,7 @@
         var units = $("#units").val();
         var pixelLength = $("#pixelLength").val();
         var actualLength = $("#mmLength").val();
-        $.ajax("${grailsApplication.config.serverName}${createLink(controller:'webService', action:'calibrateImageScale', params:[imageId: imageInstance.imageIdentifier])}&units=" + units + "&pixelLength=" + pixelLength + "&actualLength=" + actualLength).done(function() {
+        $.ajax("${grailsApplication.config.grails.serverURL}${createLink(controller:'webService', action:'calibrateImageScale', params:[imageId: imageInstance.imageIdentifier])}&units=" + units + "&pixelLength=" + pixelLength + "&actualLength=" + actualLength).done(function() {
             imgvwr.hideModal();
         });
 
