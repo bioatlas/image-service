@@ -4,10 +4,9 @@ import grails.converters.JSON
 import grails.transaction.Transactional
 import groovy.json.JsonSlurper
 
-@Transactional
 class UserPreferencesService {
 
-    public UserPreferences getUserPreferences(String userId) {
+    UserPreferences getUserPreferences(String userId) {
         if (userId) {
             def prefs = UserPreferences.findByUserId(userId)
             if (!prefs) {
@@ -19,7 +18,7 @@ class UserPreferencesService {
         return null
     }
 
-    public List<CSVColumnDefintion> getUserColumnDefinitions(String userId) {
+    List<CSVColumnDefintion> getUserColumnDefinitions(String userId) {
         List<CSVColumnDefintion> coldefs = []
         def prefs  = getUserPreferences(userId)
         if (prefs) {
@@ -33,7 +32,7 @@ class UserPreferencesService {
         return coldefs
     }
 
-    public void saveUserColumnDefintions(String userId, List<CSVColumnDefintion> columns) {
+    void saveUserColumnDefintions(String userId, List<CSVColumnDefintion> columns) {
         def prefs  = getUserPreferences(userId)
         if (prefs) {
             prefs.exportColumns = new JSON(columns).toString()

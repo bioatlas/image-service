@@ -5,7 +5,7 @@ import groovy.xml.MarkupBuilder
 
 class MapResourceFileGenerator {
 
-    public static String generateMapResourceXML(byte[] bytes, int tileSize, int[] pyramid) {
+    static String generateMapResourceXML(byte[] bytes, int tileSize, int[] pyramid) {
 
         def reader = ImageReaderUtils.findCompatibleImageReader(bytes)
 

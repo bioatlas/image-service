@@ -3,18 +3,17 @@
 This Grails application provides the webservices and backend for the storage of all images in the Atlas.
 It includes:
 
-* Support for large images
+* Support for large images, generation of thumbnails and tile views
 * Extensible key/value pair storage for image metadata
 * Support for subimaging and maintaining the relationships between parent and child images
 * Exif extraction
 * Tile view for large images compatible with GIS Javascript clients such as LeafletJS, OpenLayers and Google Maps
-* Webservices for image upload
+* Web services for image upload
 * Generate of derivative images for thumbnail presentation
-* Tagging support
+* Tagging support via webservices
 * Administrator console for image management
-* Swagger API
+* Swagger API definition
 * Integration with google analytics to monitor image usage by data resource
-
 
 There are other related repositories to this one:
 * [images-client-plugin](https://github.com/AtlasOfLivingAustralia/images-client-plugin) - a grails plugin to provide a Javascript based viewer to be used in other applications requiring a image viewer. This viewer is based on LeafletJS.
@@ -46,7 +45,6 @@ And to shutdown
 ```$xslt
 docker-compose -f elastic.yml kill
 ```
-
 
 ### Elastic search
 There is a docker-compose YML file that can be used to run elastic search locally for local development purposes.

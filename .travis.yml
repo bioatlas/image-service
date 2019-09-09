@@ -12,14 +12,8 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-before_install:
-  - docker-compose -f elastic.yml up -d
-
 script:
   - ./gradlew clean && ./gradlew war
-
-after_script:
-  - docker-compose -f elastic.yml kill
 
 deploy:
   provider: releases
@@ -33,4 +27,3 @@ deploy:
     repo: bioatlas/image-service
     all-branches: true
     tags: true
-

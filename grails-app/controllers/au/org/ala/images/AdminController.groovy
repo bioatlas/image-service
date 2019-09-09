@@ -30,8 +30,6 @@ class AdminController {
         redirect(action:'dashboard')
     }
 
-
-
     def image() {
         def image = imageService.getImageFromParams(params)
         if (!image) {
@@ -52,8 +50,6 @@ class AdminController {
                     isAdmin = true
             }
 
-            def albums = []
-
             def thumbUrls = imageService.getAllThumbnailUrls(image.imageIdentifier)
 
             boolean isImage = imageService.isImageType(image)
@@ -61,7 +57,7 @@ class AdminController {
             //add additional metadata
             def resourceLevel = collectoryService.getResourceLevelMetadata(image.dataResourceUid)
 
-            render( view:"../image/details", model: [imageInstance: image, subimages: subimages, sizeOnDisk: sizeOnDisk, albums: albums,
+            render( view:"../image/details", model: [imageInstance: image, subimages: subimages, sizeOnDisk: sizeOnDisk,
              squareThumbs: thumbUrls, isImage: isImage, resourceLevel: resourceLevel, isAdmin:isAdmin, userId:userId, isAdminView:true])
         }
     }
@@ -81,11 +77,11 @@ class AdminController {
             return
         }
 
-        def pattern = Pattern.compile('^image/(.*)$|^audio/(.*)$')
+        def pattern = Pattern.compile('^image/(.*)$|^audio/(.*)|^application/pdf$')
 
         def m = pattern.matcher(file.contentType)
         if (!m.matches()) {
-            flash.errorMessage = "Invalid file type for upload. Must be an image or audio file (content is ${file.contentType})"
+            flash.errorMessage = "Invalid file type for upload. Must be an image, audio  or PDF file (content is ${file.contentType})"
             redirect(action:'upload')
             return
         }
@@ -95,7 +91,7 @@ class AdminController {
         if (storeResult.image) {
             imageService.schedulePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
         } else {
-            imageService.scheduleNonImagePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
+            imageService.scheduleNonImagePostIngestTasks(storeResult.image.id)
         }
         flash.message = "Image uploaded with identifier: ${storeResult.image?.imageIdentifier}"
         redirect(action:'upload')
@@ -116,23 +112,27 @@ class AdminController {
             def headers = []
             def batch = []
 
-            file.inputStream.eachCsvLine { tokens ->
-                if (lineCount == 0) {
-                    headers = tokens
-                } else {
-                    def m = [:]
-                    for (int i = 0; i < headers.size(); ++i) {
-                        m[headers[i]] = tokens[i]
+            try {
+                file.inputStream.eachCsvLine { tokens ->
+                    if (lineCount == 0) {
+                        headers = tokens
+                    } else {
+                        def m = [:]
+                        for (int i = 0; i < headers.size(); ++i) {
+                            m[headers[i]] = tokens[i]
+                        }
+                        batch << m
                     }
-                    batch << m
+                    lineCount++
                 }
-                lineCount++
+                scheduleImagesUpload(batch, authService.getUserId())
+                renderResults([success: true, message:'Image upload started'])
+            } catch (Exception e){
+                log.error(e.getMessage(), e)
+                renderResults([success: false, message: "Problem reading CSV file. Please check contents."])
             }
-
-            scheduleImagesUpload(batch, '-2')
-            renderResults([success: true, message:'Image upload started'])
         } else {
-            renderResults([success: false, message: "Expected multipart request containing 'csvfile' file parameter"])
+            renderResults([success: false, message: "Problem reading CSV file from upload."])
         }
     }
 
@@ -147,6 +147,12 @@ class AdminController {
             batchService.addTaskToBatch(batchId, new UploadFromUrlTask(srcImage, imageService, userId))
             imageCount++
         }
+    }
+
+    def scheduleDeletedImagesPurge(){
+        imageService.scheduleBackgroundTask(new DeletedImagesPurgeBackgroundTask(imageService))
+        flash.message = "Deleted images purge started. Refresh dashboard for progress."
+        redirect(action:'dashboard')
     }
 
     def licences(){}
@@ -336,9 +342,11 @@ class AdminController {
     def deleteFieldDefinition() {
         def fieldDefinition = ImportFieldDefinition.findById(params.int("id"))
         if (fieldDefinition) {
-            fieldDefinition.delete()
+            fieldDefinition.delete(flush: true)
+            render([success:true] as JSON)
+        } else {
+            render([success:false] as JSON)
         }
-        render([success:true] as JSON)
     }
 
     def duplicates() {

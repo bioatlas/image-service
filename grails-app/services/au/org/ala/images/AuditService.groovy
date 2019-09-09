@@ -1,8 +1,5 @@
 package au.org.ala.images
 
-import grails.transaction.Transactional
-
-@Transactional
 class AuditService {
 
     def log(Image image, String message, String userId) {

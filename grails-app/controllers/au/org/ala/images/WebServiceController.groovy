@@ -14,8 +14,11 @@ import io.swagger.annotations.ApiResponses
 import io.swagger.annotations.Authorization
 import org.apache.http.HttpStatus
 import grails.plugins.csv.CSVWriter
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.Resource
+import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.multipart.MultipartRequest
+import swagger.SwaggerService
 
 import javax.servlet.http.HttpServletRequest
 import java.util.zip.GZIPOutputStream
@@ -34,6 +37,20 @@ class WebServiceController {
     def batchService
     def elasticSearchService
     def collectoryService
+
+    SwaggerService swaggerService
+
+    @Value("classpath*:**/webjars/swagger-ui/**/index.html")
+    Resource[] swaggerUiResources
+
+    def swagger() {
+        if(params.json){
+            String swaggerJson = swaggerService.generateSwaggerDocument()
+            render (contentType: MediaType.APPLICATION_JSON_UTF8_VALUE, text: swaggerJson)
+        } else {
+            render(view: 'swagger')
+        }
+    }
 
     @RequireApiKey
     @ApiOperation(
@@ -99,7 +116,7 @@ class WebServiceController {
             nickname = "scheduleThumbnailGeneration/{imageID}",
             produces = "application/json",
             consumes = "application/json",
-            httpMethod = "GET",
+            httpMethod = "POST",
             response = Map.class,
             authorizations = @Authorization(value="apiKey"),
             tags = ["JSON services for accessing and updating metadata"]
@@ -141,7 +158,7 @@ class WebServiceController {
             nickname = "scheduleArtifactGeneration/{imageID}",
             produces = "application/json",
             consumes = "application/json",
-            httpMethod = "GET",
+            httpMethod = "POST",
             response = Map.class,
             authorizations = @Authorization(value="apiKey"),
             tags = ["JSON services for accessing and updating metadata"]
@@ -174,6 +191,7 @@ class WebServiceController {
                 results.message = "Image artifact generation scheduled for ${count} images."
             }
         }
+        flash.message  = results.message
         renderResults(results)
     }
 
@@ -217,6 +235,7 @@ class WebServiceController {
                 results.message = "Image keyword rebuild scheduled for ${count} images."
             }
         }
+        flash.message  = results.message
         renderResults(results)
     }
 
@@ -525,7 +544,7 @@ class WebServiceController {
     ])
     def detachTagFromImage() {
         def success = false
-        def image = Image.findByImageIdentifier(params.id as String)
+        def image = Image.findByImageIdentifier(params.imageId as String)
         def tag = Tag.get(params.int("tagId"))
         if (image && tag) {
             success = tagService.detachTagFromImage(image, tag)
@@ -535,19 +554,21 @@ class WebServiceController {
 
     private addImageInfoToMap(Image image, Map results, Boolean includeTags, Boolean includeMetadata) {
 
-        results.height = image.height
-        results.width = image.width
-        results.tileZoomLevels = image.zoomLevels ?: 0
         results.mimeType = image.mimeType
         results.originalFileName = image.originalFilename
         results.sizeInBytes = image.fileSize
         results.rights = image.rights ?: ''
         results.rightsHolder = image.rightsHolder ?: ''
-        results.dateUploaded = formatDate(date: image.dateUploaded, format:"yyyy-MM-dd HH:mm:ss")
-        results.dateTaken = formatDate(date: image.dateTaken, format:"yyyy-MM-dd HH:mm:ss")
-        results.imageUrl = imageService.getImageUrl(image.imageIdentifier)
-        results.tileUrlPattern = "${imageService.getImageTilesRootUrl(image.imageIdentifier)}/{z}/{x}/{y}.png"
-        results.mmPerPixel = image.mmPerPixel ?: ''
+        results.dateUploaded = formatDate(date: image.dateUploaded, format: "yyyy-MM-dd HH:mm:ss")
+        results.dateTaken = formatDate(date: image.dateTaken, format: "yyyy-MM-dd HH:mm:ss")
+        if (results.mimeType && results.mimeType.startsWith('image')){
+            results.imageUrl = imageService.getImageUrl(image.imageIdentifier)
+            results.tileUrlPattern = "${imageService.getImageTilesRootUrl(image.imageIdentifier)}/{z}/{x}/{y}.png"
+            results.mmPerPixel = image.mmPerPixel ?: ''
+            results.height = image.height
+            results.width = image.width
+            results.tileZoomLevels = image.zoomLevels ?: 0
+        }
         results.description = image.description ?: ''
         results.title = image.title ?: ''
         results.creator = image.creator ?: ''
@@ -572,7 +593,6 @@ class WebServiceController {
                 results.metadata << [key: md.name, value: md.value, source: md.source]
             }
         }
-
     }
 
     @ApiOperation(
@@ -597,7 +617,8 @@ class WebServiceController {
     ])
     def getImageInfo() {
         def results = [success:false]
-        def image = Image.findByImageIdentifier(params.imageID as String)
+        def imageId = params.id ? params.id : params.imageID
+        def image = Image.findByImageIdentifier(imageId as String)
         if (image) {
             results.success = true
             addImageInfoToMap(image, results, params.boolean("includeTags"), params.boolean("includeMetadata"))
@@ -674,6 +695,9 @@ class WebServiceController {
     def getRepositoryStatistics() {
         def results = [:]
         results.imageCount = Image.count()
+        results.deletedImageCount = Image.countByDateDeletedIsNotNull()
+        results.licenceCount = License.count()
+        results.licenceMappingCount = LicenseMapping.count()
         results.sizeOnDisk =
         renderResults(results)
     }
@@ -718,22 +742,6 @@ class WebServiceController {
         renderResults(results)
     }
 
-    @ApiOperation(
-            value = "Create Subimage",
-            nickname = "createSubimage",
-            produces = "application/json",
-            consumes = "application/json",
-            httpMethod = "GET",
-            response = Map.class,
-            authorizations = @Authorization(value="apiKey"),
-            tags = ["JSON services for accessing and updating metadata"]
-    )
-    @ApiResponses([
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 405, message = "Method Not Allowed. Only GET is allowed"),
-            @ApiResponse(code = 404, message = "Image Not Found")]
-    )
-    @RequireApiKey
     def createSubimage() {
         def image = Image.findByImageIdentifier(params.id as String)
         if (!image) {
@@ -767,6 +775,57 @@ class WebServiceController {
         def subimage = imageService.createSubimage(image, x, y, width, height, userId, [title:title, description:description] )
         renderResults([success: subimage != null, subImageId: subimage?.imageIdentifier])
     }
+
+    @ApiOperation(
+            value = "Create Subimage",
+            nickname = "subimage",
+            produces = "application/json",
+            consumes = "application/json",
+            httpMethod = "PUT",
+            response = Map.class,
+            authorizations = @Authorization(value="apiKey"),
+            tags = ["JSON services for accessing and updating metadata"]
+    )
+    @ApiResponses([
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 405, message = "Method Not Allowed. Only GET is allowed"),
+            @ApiResponse(code = 404, message = "Image Not Found")]
+    )
+    @RequireApiKey
+    def subimage() {
+        def image = Image.findByImageIdentifier(params.id as String)
+        if (!image) {
+            renderResults([success:false, message:"Image not found: ${params.id}"])
+            return
+        }
+
+        if (!params.x || !params.y || !params.height || !params.width) {
+            renderResults([success:false, message:"Rectangle not correctly specified. Use x, y, height and width params"])
+            return
+        }
+
+        def x = params.int('x')
+        def y = params.int('y')
+        def height = params.int('height')
+        def width = params.int('width')
+        def title = params.title
+        def description = params.description
+
+        if (height == 0 || width == 0) {
+            renderResults([success:false, message:"Rectangle not correctly specified. Height and width cannot be zero"])
+            return
+        }
+
+        def userId = getUserIdForRequest(request)
+        if(!userId){
+            renderResults([success:false, message:"User needs to be logged in to create sub image"])
+            return
+        }
+
+        def subimage = imageService.createSubimage(image, x, y, width, height, userId, [title:title, description:description] )
+        renderResults([success: subimage != null, subImageId: subimage?.imageIdentifier])
+    }
+
 
     def getSubimageRectangles() {
 
@@ -901,6 +960,7 @@ class WebServiceController {
         userId
     }
 
+    @RequireApiKey
     def bulkAddUserMetadataToImage(String id) {
         def image = Image.findByImageIdentifier(id)
         def userId = getUserIdForRequest(request)
@@ -916,6 +976,7 @@ class WebServiceController {
         renderResults([success:results != null])
     }
 
+    @RequireApiKey
     def removeUserMetadataFromImage() {
         def image = Image.findByImageIdentifier(params.id as String)
         if (!image) {
@@ -1157,19 +1218,20 @@ class WebServiceController {
     }
 
     @ApiOperation(
-            value = "Find images by image metadata",
+            value = "Find images by image metadata - deprecated. Use /search instead",
             nickname = "findImagesByMetadata",
             produces = "application/json",
             consumes = "application/json",
             httpMethod = "POST",
             response = Map.class,
-            tags = ["Search"]
+            tags = ["Deprecated"]
     )
     @ApiResponses([
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 405, message = "Method Not Allowed. Only GET is allowed"),
             @ApiResponse(code = 404, message = "Image Not Found")]
     )
+    @Deprecated
     def findImagesByMetadata() {
 
         def query = request.JSON
@@ -1189,22 +1251,13 @@ class WebServiceController {
                 return
             }
 
-            def images = elasticSearchService.searchByMetadata(key, values, params)
-            def results = [:]
-            def keyValues = imageService.getMetadataItemValuesForImages(images.list, key)
-            images?.list?.each { image ->
-                def map = imageService.getImageInfoMap(image)
-                collectoryService.addMetadataForResource(image)
-                def keyValue = keyValues[image.id]
-                def list = results[keyValue]
-                if (!list) {
-                    list = []
-                    results[keyValue] = list
-                }
-                list << map
+            def results = elasticSearchService.searchByMetadata(key, values, params)
+            def totalCount = 0
+            results.values().each {
+                totalCount = totalCount + it.size()
             }
 
-            renderResults([success: true, images: results, count:images?.totalCount ?: 0])
+            renderResults([success: true, images: results, count: totalCount])
             return
         }
 
@@ -1216,6 +1269,7 @@ class WebServiceController {
         renderResults(results)
     }
 
+    @RequireApiKey
     def cancelTileJob() {
 
         def userId = AuthenticationUtils.getUserId(request)
@@ -1337,7 +1391,7 @@ class WebServiceController {
      * @return
      */
     @ApiOperation(
-            value = "Upload a single image, with by URL or multipart HTTP file upload",
+            value = "Upload a single image, with by URL or multipart HTTP file upload. For multipart the image must be posted in a 'image' property",
             nickname = "uploadImage",
             produces = "application/json",
             consumes = "application/json",
@@ -1377,9 +1431,8 @@ class WebServiceController {
                 }
             } else {
                 // it should contain a file parameter
-                MultipartRequest req = request as MultipartRequest
-                if (req) {
-                    MultipartFile file = req.getFile('image')
+                if (request.metaClass.respondsTo(request, 'getFile', String)) {
+                    MultipartFile file = request.getFile('image')
                     if (!file) {
                         renderResults([success: false, message: 'image parameter not found. Please supply an image file.'])
                         return
@@ -1402,19 +1455,14 @@ class WebServiceController {
 
                 CodeTimer ct = new CodeTimer("Setting Image metadata ${params.imageIdentifier}")
 
-                //store any other property
-                metadata.each { kvp ->
-                    if (!storeResult.image.hasProperty(kvp.key)) {
-                        imageService.setMetaDataItem(storeResult.image, MetaDataSourceType.SystemDefined, kvp.key as String, kvp.value as String)
-                    }
-                }
-
                 tagService.updateTags(storeResult.image, params.tags, userId)
-                imageService.schedulePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
+                if(!storeResult.alreadyStored) {
+                    imageService.schedulePostIngestTasks(storeResult.image.id, storeResult.image.imageIdentifier, storeResult.image.originalFilename, userId)
+                }
 
                 ct.stop(true)
 
-                renderResults([success: true, imageId: storeResult.image?.imageIdentifier])
+                renderResults([success: true, imageId: storeResult.image?.imageIdentifier, alreadyStored: storeResult.alreadyStored])
             } else {
                 renderResults([success: false, message: "Failed to store image!"])
             }
@@ -1459,6 +1507,24 @@ class WebServiceController {
                 return
             }
 
+            //validate post
+            def invalidCount = 0
+            imageList.each { srcImage ->
+                if(!srcImage.sourceUrl &&  !srcImage.imageUrl){
+                    invalidCount += 1
+                }
+            }
+
+            if (invalidCount) {
+                renderResults(
+                    [success:false,
+                     message: 'You must supply a list of objects called "images", each of which' +
+                             ' must contain a "sourceUrl" key, along with optional meta data items. Invalid submissions:' + invalidCount],
+                    HttpStatus.SC_BAD_REQUEST
+                )
+                return
+            }
+
             // first create the images
             def results = imageService.batchUploadFromUrl(imageList, userId)
 
@@ -1479,7 +1545,6 @@ class WebServiceController {
     }
 
     def calibrateImageScale() {
-
         def userId = getUserIdForRequest(request)
         def image = Image.findByImageIdentifier(params.imageId)
         def units = params.units ?: "mm"
@@ -1488,9 +1553,9 @@ class WebServiceController {
         if (image && units && pixelLength && actualLength) {
             def pixelsPerMM = imageService.calibrateImageScale(image, pixelLength, actualLength, units, userId)
             renderResults([success: true, pixelsPerMM:pixelsPerMM, message:"Image is scaled at ${pixelsPerMM} pixels per mm"])
-            return
+        } else {
+            renderResults([success: false, message: 'Missing one or more required parameters: imageId, pixelLength, actualLength, units'])
         }
-        renderResults([success:false, message:'Missing one or more required parameters: imageId, pixelLength, actualLength, units'])
     }
 
     def resetImageCalibration() {
@@ -1519,7 +1584,7 @@ class WebServiceController {
             nickname = "scheduleUploadFromUrls",
             produces = "application/json",
             consumes = "application/json",
-            httpMethod = "GET",
+            httpMethod = "POST",
             response = Map.class,
             tags = ["Upload"],
             authorizations = @Authorization(value="apiKey")

@@ -2,11 +2,16 @@ package au.org.ala.images
 
 import com.opencsv.CSVWriter
 import grails.converters.JSON
+import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest
 import org.elasticsearch.action.bulk.BulkRequest
 import org.elasticsearch.action.bulk.BulkResponse
 import org.elasticsearch.action.delete.DeleteRequest
 import org.elasticsearch.action.search.SearchScrollRequest
+import org.elasticsearch.client.indices.GetFieldMappingsRequest
+import org.elasticsearch.cluster.metadata.MappingMetaData
 import org.elasticsearch.common.unit.TimeValue
 import org.elasticsearch.common.xcontent.XContentType
 import groovy.json.JsonOutput
@@ -39,10 +44,8 @@ import org.elasticsearch.search.aggregations.BucketOrder
 import org.elasticsearch.search.builder.SearchSourceBuilder
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder
 import org.elasticsearch.search.sort.SortOrder
-import org.springframework.context.MessageSource
 
 import javax.annotation.PreDestroy
-import java.sql.Timestamp
 import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 import java.util.zip.ZipEntry
@@ -53,8 +56,9 @@ class ElasticSearchService {
     def logService
     def grailsApplication
     def imageStoreService
-    def collectoryService
-    MessageSource messageSource
+
+    static String UNRECOGNISED_LICENCE =  "unrecognised_licence"
+    static String NOT_SUPPLIED = "not_supplied"
 
     private RestHighLevelClient client
 
@@ -123,7 +127,7 @@ class ElasticSearchService {
         if (image.recognisedLicense) {
             data.recognisedLicence = image.recognisedLicense.acronym
         } else {
-            data.recognisedLicence = "unrecognised_licence"
+            data.recognisedLicence = UNRECOGNISED_LICENCE
         }
 
         indexImageInES(
@@ -150,7 +154,7 @@ class ElasticSearchService {
                 data.thumbWidth,
                 data.harvestable,
                 data.recognisedLicence,
-                data.occurrenceID
+                data.occurrenceId
         )
         ct.stop(true)
     }
@@ -179,7 +183,7 @@ class ElasticSearchService {
             thumbWidth,
             harvestable,
             recognisedLicence,
-            occurrenceID
+            occurrenceId
     ){
         def data = [
                 imageIdentifier: imageIdentifier,
@@ -205,7 +209,7 @@ class ElasticSearchService {
                 thumbWidth:thumbWidth,
                 harvestable:harvestable,
                 recognisedLicence: recognisedLicence,
-                occurrenceID: occurrenceID
+                occurrenceID: occurrenceId
         ]
 
         addAdditionalIndexFields(data)
@@ -233,21 +237,27 @@ class ElasticSearchService {
 
     private def addAdditionalIndexFields(data){
 
-        if(data.dateUploaded){
-
-            if(data.dateUploaded instanceof java.util.Date){
+        if (data.dateUploaded){
+            if(!data.dateUploadedYearMonth && data.dateUploaded instanceof java.util.Date){
                 data.dateUploadedYearMonth = data.dateUploaded.format("yyyy-MM")
-            } else {
-                def newDate = Date.parseToStringDate(data.dateUploaded)
-                if(newDate){
-                    data.dateUploadedYearMonth =newDate.format("yyyy-MM")
-                }
             }
         }
 
-        data.recognisedLicence  = data.recognisedLicence ?: "unrecognised_licence"
-        data.creator = data.creator ? data.creator.replaceAll("[\"|'&]", "") : "not_supplied"
-        data.dataResourceUid = data.dataResourceUid ?: "no_dataresource"
+        if (data.format){
+            if (data.format.startsWith('image')){
+                data.fileType = 'image'
+            } else if (data.format.startsWith('audio')){
+                data.fileType = 'sound'
+            } else if (data.format.startsWith('video')){
+                data.fileType = 'video'
+            } else {
+                data.fileType = 'document'
+            }
+        }
+
+        data.recognisedLicence  = data.recognisedLicence ?: UNRECOGNISED_LICENCE
+        data.creator = data.creator ? data.creator.replaceAll("[\"|'&]", "") : NOT_SUPPLIED
+        data.dataResourceUid = data.dataResourceUid ?:  CollectoryService.NO_DATARESOURCE
         def imageSize = data.height.toInteger() * data.width.toInteger()
         if (imageSize < 100){
             data.imageSize = "less than 100"
@@ -260,15 +270,17 @@ class ElasticSearchService {
         } else if (imageSize < 1000000){
             data.imageSize = "less than 1m"
         } else {
-            data.imageSize = (imageSize / 1000000).intValue() +"m"
+            data.imageSize = (imageSize / 1000000).intValue() + "m"
         }
         data
     }
 
     def deleteImage(Image image) {
         if (image) {
-            DeleteResponse response = client.delete(new DeleteRequest(grailsApplication.config.elasticsearch.indexName, image.id.toString()), RequestOptions.DEFAULT)
-            log.info(response.status())
+            DeleteResponse response = client.delete(new DeleteRequest(grailsApplication.config.elasticsearch.indexName, image.imageIdentifier), RequestOptions.DEFAULT)
+            if (response.status() && response.status().status){
+                log.info(response.status().status.toString())
+            }
         }
     }
 
@@ -279,12 +291,7 @@ class ElasticSearchService {
         def imageList = []
         if (searchResponse.hits) {
             searchResponse.hits.each { hit ->
-               def image =  Image.findByImageIdentifier(hit.id)
-               if(image) {
-                   image.metadata = null
-                   image.recognisedLicense = null
-                   imageList << image
-               }
+                imageList << hit.getSourceAsMap()
             }
         }
         QueryResults<Image> qr = new QueryResults<Image>()
@@ -528,7 +535,7 @@ class ElasticSearchService {
         SearchSourceBuilder source = pagenateQuery(params).query(boolQueryBuilder)
 
         // request aggregations (facets)
-        source.aggregation(AggregationBuilders.terms(facet as String).field(facet as String).size(10000).order(BucketOrder.key(true)))
+        source.aggregation(AggregationBuilders.terms(facet as String).field(facet as String).size(grailsApplication.config.elasticsearch.maxFacetSize.toInteger()).order(BucketOrder.key(true)))
 
         //ask for the total
         source.trackTotalHits(false)
@@ -539,9 +546,25 @@ class ElasticSearchService {
     }
 
     private SearchSourceBuilder pagenateQuery(Map params) {
+
+        int maxOffset = grailsApplication.config.elasticsearch.maxOffset as int
+
+
         SearchSourceBuilder source = new SearchSourceBuilder()
-        source.from(params.offset ? params.offset as int : 0)
-        source.size(params.max ? params.max as int : 10)
+
+        if(params.offset && params.max && (params.offset as int) + (params.max as int) >= maxOffset ){
+            //max default max offset is 10000 for elastic search
+            source.from(maxOffset - (params.max as int))
+            source.size(params.max ? params.max as int : 10)
+        } else {
+            if (params.offset && (params.offset as int)  >= maxOffset){
+                source.from(maxOffset) //limit to 10000
+            } else {
+                source.from(params.offset ? params.offset as int : 0)
+            }
+            source.size(params.max ? params.max as int : 10)
+        }
+
         source.sort('dateUploaded', SortOrder.DESC)
         source
     }
@@ -560,7 +583,7 @@ class ElasticSearchService {
                 }
 
                 PutMappingRequest putMappingRequest = new PutMappingRequest(grailsApplication.config.elasticsearch.indexName)
-                putMappingRequest.type("images")
+                putMappingRequest.type(grailsApplication.config.elasticsearch.indexName as String)
                 putMappingRequest.source(
                         """{
                                   "properties": {
@@ -584,13 +607,28 @@ class ElasticSearchService {
                                     }, 
                                     "format":{
                                        "type": "keyword"
-                                    },                                                                         
+                                    },    
+                                    "fileType":{
+                                       "type": "keyword"
+                                    },                                               
                                     "createdYear":{
                                        "type": "keyword"
                                     },                                                                     
                                     "creator": {
                                       "type": "keyword"
-                                    }                                                                                             
+                                    },                                                                     
+                                    "width": {
+                                      "type": "integer"
+                                    },                                                                     
+                                    "height": {
+                                      "type": "integer"
+                                    },                                                                     
+                                    "thumbHeight": {
+                                      "type": "integer"
+                                    },                                                                     
+                                    "thumbWidth": {
+                                      "type": "integer"
+                                    }         
                                   }
                                 }""",
                         XContentType.JSON)
@@ -639,48 +677,22 @@ class ElasticSearchService {
         boolQueryBuilder
     }
 
-    QueryResults<Image> searchByMetadata(String key, List<String> values, GrailsParameterMap params) {
-        def queryString = values.collect { key.toLowerCase() + ":\"" + it + "\""}.join(" OR ")
-        QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(queryString)
-        builder.defaultField("content")
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-        searchSourceBuilder.query(builder)
-        return executeSearch(searchSourceBuilder, params)
-    }
+    Map searchByMetadata(String key, List<String> values, GrailsParameterMap params) {
 
-    private QueryResults<Image> executeSearch(GrailsParameterMap params) {
+        def properties = getMetadataKeys()
+        def caseInsensitive = [:]
+        properties.each { caseInsensitive.put(it.toLowerCase(), it)}
+        def indexField = caseInsensitive.get(key.toLowerCase())
+
+        def queryString = values.collect { "\"${it}\"" }.join(" OR ")
+        QueryStringQueryBuilder queryBuilder = QueryBuilders.queryStringQuery(queryString)
+
+        //find indexed field......
+        queryBuilder.defaultField(indexField)
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+        searchSourceBuilder.query(queryBuilder)
 
         try {
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-
-            QueryBuilder queryBuilder = QueryBuilders.queryStringQuery(params.q)
-
-            def filterQueries = params.findAll { it.key == 'fq'}
-
-            def filters = []
-
-            if (filterQueries) {
-                filterQueries.each {
-
-                    if(it.value instanceof String[]){
-                        it.value.each { filter ->
-                            def kv = filter.split(":")
-                            filters << QueryBuilders.termQuery(kv[0], kv[1])
-                        }
-                    } else {
-                        def kv = it.value.split(":")
-                        filters << QueryBuilders.termQuery(kv[0], kv[1])
-                    }
-                }
-            }
-
-            if (filters) {
-                BoolQueryBuilder builder = QueryBuilders.boolQuery()
-                filters.each {
-                    builder.must(it)
-                }
-                queryBuilder = builder.must(queryBuilder) //QueryBuilders.termQuery(qsQuery). builder)
-            }
 
             if (params?.offset) {
                 searchSourceBuilder.from(params.int("offset"))
@@ -689,17 +701,12 @@ class ElasticSearchService {
             if (params?.max) {
                 searchSourceBuilder.size(params.int("max"))
             } else {
-                searchSourceBuilder.size(Integer.MAX_VALUE) // probably way too many!
+                searchSourceBuilder.size(grailsApplication.config.elasticsearch.maxOffset) // probably way too many!
             }
 
             if (params?.sort) {
                 def order = params?.order == "asc" ? SortOrder.ASC : SortOrder.DESC
                 searchSourceBuilder.sort(params.sort as String, order)
-            }
-
-            // aggregations = facets
-            grailsApplication.config.facets.each { facet ->
-                searchSourceBuilder.aggregation(AggregationBuilders.terms(facet as String).field(facet as String))
             }
 
             def ct = new CodeTimer("Index search")
@@ -712,41 +719,44 @@ class ElasticSearchService {
 
             ct = new CodeTimer("Object retrieval (${searchResponse.hits.hits.length} of ${searchResponse.hits.totalHits} hits)")
             def imageList = []
-            def aggregations = [:]
             if (searchResponse.hits) {
                 searchResponse.hits.each { hit ->
-                    imageList << Image.get(hit.id.toLong())
-                }
-                searchResponse.aggregations.each {
-                    def facet = [:]
-                    it.buckets.each { bucket ->
-                        facet[bucket.getKeyAsString()] = bucket.getDocCount()
-                    }
-                    aggregations.put(it.name, facet)
+                    def image =  Image.findByImageIdentifier(hit.id)
+                    image.metadata = null
+                    image.tags = null
+                    imageList << image
                 }
             }
             ct.stop(true)
 
-            return new QueryResults<Image>(list: imageList, aggregations:aggregations, totalCount: searchResponse?.hits?.totalHits.value ?: 0)
+            def resultsKeyedByValue = [:]
+
+            imageList.each {
+
+                def caseInsensitiveMap = [:]
+                it.properties.each { k, v -> caseInsensitiveMap[k.toLowerCase()] = v }
+                def keyValue = caseInsensitiveMap.get(indexField.toLowerCase())
+                def list = resultsKeyedByValue.get(keyValue, [])
+                list << it
+                resultsKeyedByValue.put(keyValue, list)
+            }
+
+            return resultsKeyedByValue
         } catch (SearchPhaseExecutionException e) {
             log.warn(".SearchPhaseExecutionException thrown - this is expected behaviour for a new empty system.")
-            return new QueryResults<Image>(list: [], totalCount: 0)
+            return [:]
         } catch (Exception e) {
             e.printStackTrace()
             log.warn("Exception thrown - this is expected behaviour for a new empty system.")
-            return new QueryResults<Image>(list: [], totalCount: 0)
+            return [:]
         }
     }
 
     def getMetadataKeys() {
-        ClusterState cs = client.admin().cluster().prepareState().execute().actionGet().getState();
-        IndexMetaData imd = cs.getMetaData().index(grailsApplication.config.elasticsearch.indexName as String)
-        Map mdd = imd.mapping("image").sourceAsMap()
-        Map metadata = mdd?.properties?.metadata?.properties
-        def names = []
-        if (metadata) {
-            names = metadata.collect { it.key }
-        }
-        names
+        GetMappingsRequest request = new GetMappingsRequest();
+        request.indices("images")
+        GetMappingsResponse getMappingResponse = client.indices().getMapping(request, RequestOptions.DEFAULT)
+        Map properties = getMappingResponse.mappings().values().first().value.first().value.sourceAsMap().properties
+        properties.keySet()
     }
 }

@@ -27,14 +27,21 @@ class UrlMappings {
             controller = "webService"
         }
 
-        name api_doc: "/ws"(controller: 'apiDoc', action: 'getDocuments')
-        "/ws/"(controller: 'apiDoc', action: 'getDocuments')
+        "/ws/api"(controller: 'apiDoc', action: 'getDocuments')
+        name api_doc: "/ws/"(controller: 'webService', action: 'swagger')
+        "/ws"(controller: 'webService', action: 'swagger')
 
         // legacy URLS
+        "/image/imageTooltipFragment"(controller: "image", action: "imageTooltipFragment")
         "/image/proxyImageThumbnail"(controller: "image", action: "proxyImageThumbnail")
         "/image/proxyImageThumbnailLarge"(controller: "image", action: "proxyImageThumbnailLarge")
         "/image/proxyImageTile"(controller: "image", action: "proxyImageTile")
         "/image/proxyImage"(controller: "image", action: "proxyImage")
+        "/proxyImageThumbnail"(controller: "image", action: "proxyImageThumbnail")
+        "/proxyImageThumbnailLarge"(controller: "image", action: "proxyImageThumbnailLarge")
+        "/proxyImageTile"(controller: "image", action: "proxyImageTile")
+        "/proxyImage"(controller: "image", action: "proxyImage")
+
         "/image/viewer"(controller:"image", action: "viewer")
         "/image/view/$id"(controller:"image", action: "viewer")
         "/image/viewer/$id"(controller:"image", action: "viewer")
@@ -67,7 +74,7 @@ class UrlMappings {
         "/ws/images/tag/$tagID"(controller: "webService", action: "getImagesForTag")
 
         "/ws/tag/$tagId/image/$imageId"(controller: "webService"){
-           action = [GET: 'attachTagToImage', PUT: 'attachTagToImage', DELETE: 'detachTagToImage']
+           action = [GET: 'attachTagToImage', PUT: 'attachTagToImage', DELETE: 'detachTagFromImage']
         }
         "/ws/tag/$tagId/images"(controller: "webService", action:"getImagesForTag")
 

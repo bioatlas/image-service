@@ -15,13 +15,11 @@
                     <td>${field.fieldType}</td>
                     <td>${field.value}</td>
                     <td>
-                        <button class="btn btn-small btn-danger btnDeleteFieldDefinition"><i class="icon-remove icon-white"></i></button>
-                        <button class="btn btn-small btnEditFieldDefinition"><i class="icon-edit"></i></button>
+                        <button class="btn btn-sm btn-danger btnDeleteFieldDefinition"><i class="glyphicon glyphicon-remove"></i></button>
+                        <button class="btn btn-sm btn-default btnEditFieldDefinition"><i class="glyphicon glyphicon-edit"></i></button>
                     </td>
                 </tr>
             </g:each>
         </tbody>
     </table>
-    <script>
-    </script>
 </div>

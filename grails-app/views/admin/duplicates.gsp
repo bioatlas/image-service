@@ -39,11 +39,6 @@
 
         <div class="pagination">
             <tb:paginate total="${totalCount}" prev="" next="" />
-%{--            <tb:paginate total="${totalCount}" max="100"--}%
-%{--                         action="ad"--}%
-%{--                         controller="image"--}%
-%{--                         params="${[q:params.q]}"--}%
-%{--            />            --}%
         </div>
     </div>
 </body>

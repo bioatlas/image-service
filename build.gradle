@@ -17,7 +17,9 @@ plugins {
     id "com.gorylenko.gradle-git-properties" version "1.4.17"
 }
 
-version "1.0.2"
+
+version "1.0.8"
+
 group "au.org.ala"
 
 apply plugin:"eclipse"
@@ -29,6 +31,13 @@ apply plugin:"org.grails.grails-gsp"
 
 apply from: 'https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/travis_grails_publish.gradle'
 
+//grails {
+//    exploded = true
+//    plugins {
+//        compile project(':images-client-plugin')
+//    }
+//}
+
 
 repositories {
     mavenLocal()
@@ -39,7 +48,7 @@ repositories {
 
 dependencies {
 
-    compile "org.springframework.boot:spring-boot-starter-logging"
+    compile ("org.springframework.boot:spring-boot-starter-logging")
     compile "org.springframework.boot:spring-boot-autoconfigure"
     compile "org.grails:grails-core"
     compile "org.springframework.boot:spring-boot-starter-actuator"
@@ -50,12 +59,11 @@ dependencies {
     compile 'org.grails.plugins:csv:1.0.1'
     
     // ALA plugins
-    compile group: 'org.grails.plugins', name: 'ala-auth', version: '3.1.0', changing: true
     compile group: 'org.grails.plugins', name: 'ala-ws-plugin', version: '2.0', changing: true
     compile group: 'org.grails.plugins', name: 'ala-bootstrap3', version: '3.2.1', changing: true
     compile group: 'org.grails.plugins', name: 'ala-admin-plugin', version: '2.1', changing: true
-    compile group: 'org.grails.plugins', name: 'ala-auth', version: '3.1.0', changing: true
-    compile group: 'au.org.ala.plugins.grails', name:'images-client-plugin', version: '1.0.1-SNAPSHOT', changing: true
+    compile group: 'org.grails.plugins', name: 'ala-auth', version: '3.2.2', changing: true
+    compile group: 'au.org.ala.plugins.grails', name:'images-client-plugin', version: '1.1', changing: true
 
     // Added dependencies
     compile 'org.grails.plugins:external-config:1.2.2'    
@@ -69,9 +77,10 @@ dependencies {
     compile 'org.apache.commons:commons-imaging:1.0-SNAPSHOT'
     compile 'org.apache.tika:tika-core:1.18'
     compile 'com.github.jai-imageio:jai-imageio-core:1.4.0'
-    compile 'au.org.ala:image-utils:1.8.6'
-    compile 'org.grails.plugins:ala-ws-security-plugin:2.0'
-    compile 'org.grails.plugins:ala-admin-plugin:2.1'
+    compile ('au.org.ala:image-utils:1.8.6'){
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+    compile 'org.grails.plugins:ala-ws-security-plugin:2.0.1'
     
     // Swagger
     compile 'org.grails.plugins:swagger:1.0.1'
@@ -111,6 +120,8 @@ dependencies {
     compile 'org.apache.ant:ant:1.7.1'
     compile 'org.apache.ant:ant-launcher:1.7.1'
     compile group: 'org.codehaus.groovy', name: 'groovy-ant', version: '2.0.0'
+    runtime group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.12.0'
+    runtime group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.12.0'
 }
 
 bootRun {

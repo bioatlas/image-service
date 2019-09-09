@@ -15,6 +15,10 @@
     <g:if test="${flash.errorMessage}">
         <div class="alert alert-danger" style="display: block">${flash.errorMessage}</div>
     </g:if>
+
+    <g:if test="${!results}">
+        <div class="alert alert-warning" style="display: block">No results for analytics. Check GA credentials are available at ${grailsApplication.config.analytics.credentialsJson}</div>
+    </g:if>
     <g:each in="${results}" var="resultsPeriod">
         <h3><g:message code="${resultsPeriod.key}" default="${resultsPeriod.key}"/> - total views: ${resultsPeriod.value.totalEvents}</h3>
         <table class="table table-condensed table-striped">

@@ -4,15 +4,15 @@
     </div>
     <div class="control-group">
         <div class="controls">
-            <g:textField class="input-small" name="pixelLength" value="${pixelLength}"/> pixels =
-            <g:textField class="input-small" name="mmLength" value="" />
+            <g:textField class="form-control" name="pixelLength" value="${pixelLength}"/> pixels =
+            <g:textField class="form-control" name="mmLength" value="" />
             <g:select name="units" class="input-small" from="${['mm','inches', 'metres','feet']}" value="mm"/>
         </div>
     </div>
     <div class="control-group">
         <div class="controls">
-            <button class="btn btn-primary" id="btnCalibrateImageScale">Save</button>
-            <button class="btn" id="btnCancelCalibrateImageScale">Cancel</button>
+            <button class="btn btn-primary" id="btnCalibrateImageScale">Update</button>
+            <button class="btn btn-default" id="btnCancelCalibrateImageScale">Cancel</button>
         </div>
     </div>
 </div>

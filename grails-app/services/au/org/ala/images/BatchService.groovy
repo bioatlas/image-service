@@ -6,7 +6,7 @@ class BatchService {
 
     def imageService
 
-    public String createNewBatch() {
+    String createNewBatch() {
         BatchStatus status = new BatchStatus()
 
         synchronized (_Batches) {
@@ -16,7 +16,7 @@ class BatchService {
         return status.batchId
     }
 
-    public void addTaskToBatch(String batchId, BackgroundTask task) {
+    void addTaskToBatch(String batchId, BackgroundTask task) {
 
         synchronized (_Batches) {
             if (!_Batches.containsKey(batchId)) {
@@ -30,7 +30,7 @@ class BatchService {
         }
     }
 
-    public void notifyBatchTaskComplete(String batchId, int taskSequenceNumber, Object result) {
+    void notifyBatchTaskComplete(String batchId, int taskSequenceNumber, Object result) {
 
         if (!_Batches.containsKey(batchId)) {
             return
@@ -45,7 +45,7 @@ class BatchService {
         }
     }
 
-    public BatchStatus getBatchStatus(String batchId) {
+    BatchStatus getBatchStatus(String batchId) {
 
         if (!_Batches.containsKey(batchId)) {
             return null
@@ -54,7 +54,7 @@ class BatchService {
         return _Batches[batchId]
     }
 
-    public void finaliseBatch(String batchId) {
+    void finaliseBatch(String batchId) {
         synchronized (_Batches) {
             if (!_Batches.containsKey(batchId)) {
                 return

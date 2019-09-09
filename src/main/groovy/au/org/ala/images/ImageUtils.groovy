@@ -13,12 +13,13 @@ import org.imgscalr.Scalr
 class ImageUtils {
 
     static int IMAGE_BUF_INIT_SIZE = 2 * 1024 * 1024
+    static Pattern COLOR_PATTERN = Pattern.compile('^rgb[(]\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*[)]')
 
     static {
         ImageIO.useCache = false
     }
 
-    public static Rectangle getThumbBounds(int srcWidth, int srcHeight, int targetWidth, int targetHeight) {
+    static Rectangle getThumbBounds(int srcWidth, int srcHeight, int targetWidth, int targetHeight) {
         while (srcHeight > targetHeight || srcWidth > targetWidth) {
             if (srcHeight > targetHeight) {
                 double ratio = (double) (targetHeight) / (double) srcHeight;
@@ -36,12 +37,12 @@ class ImageUtils {
         return new Rectangle(0, 0, srcWidth, srcHeight);
     }
 
-    public static getScaledHeight(int sourceWidth, int sourceHeight, int destWidth) {
+    static getScaledHeight(int sourceWidth, int sourceHeight, int destWidth) {
         double ratio = (double) (destWidth) / (double) sourceWidth;
         return (int) (sourceHeight * ratio);
     }
 
-    public static BufferedImage bytesToImage(byte[] bytes) {
+    static BufferedImage bytesToImage(byte[] bytes) {
         ByteArrayInputStream bais = null
         try {
             bais = new ByteArrayInputStream(bytes)
@@ -53,7 +54,7 @@ class ImageUtils {
         }
     }
 
-    public static byte[] imageToBytes(BufferedImage image) {
+    static byte[] imageToBytes(BufferedImage image) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(IMAGE_BUF_INIT_SIZE)
             ImageIO.write(image, "JPG", baos)
@@ -62,19 +63,18 @@ class ImageUtils {
         }
     }
 
-    public static BufferedImage scaleWidth(BufferedImage src, int destWidth) {
+    static BufferedImage scaleWidth(BufferedImage src, int destWidth) {
         return Scalr.resize(src, Scalr.Method.QUALITY, destWidth, Scalr.OP_ANTIALIAS);
     }
 
-    public static BufferedImage scale(BufferedImage src, int destWidth, int destHeight) {
+    static BufferedImage scale(BufferedImage src, int destWidth, int destHeight) {
         return Scalr.resize(src, Scalr.Method.QUALITY, destWidth, destHeight, Scalr.OP_ANTIALIAS);
     }
 
-    public static Color parseColor(String colorString) {
+    static Color parseColor(String colorString) {
         Color color;
 
-        def pattern = Pattern.compile('^rgb[(]\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*[)]')
-        def m = pattern.matcher(colorString)
+        def m = COLOR_PATTERN.matcher(colorString)
         if (m.matches()) {
             int red, green, blue;
             red = Integer.parseInt(m.group(1))
@@ -122,7 +122,7 @@ class ImageUtils {
         return color;
     }
 
-    public static BufferedImage rotateImage(BufferedImage image, int degrees) {
+    static BufferedImage rotateImage(BufferedImage image, int degrees) {
         AffineTransform tx = new AffineTransform();
         tx.translate(image.getHeight() / 2, image.getWidth() / 2);
         tx.rotate(Math.toRadians(degrees));
@@ -133,7 +133,7 @@ class ImageUtils {
         return dest
     }
 
-    public static String formatFileSize(double filesize) {
+    static String formatFileSize(double filesize) {
         def labels = [ ' bytes', 'KB', 'MB', 'GB' ]
         def label = labels.find { ( filesize < 1024 ) ? true : { filesize /= 1024 ; false }() } ?: 'TB'
         return "${new DecimalFormat( '0.#' ).format( filesize )} $label"

@@ -114,6 +114,14 @@
             </td>
         </tr>
 
+        <tr>
+            <td>
+                <button id="btnPurgeDeletedImages" class="btn btn-default">Purge deleted images</button>
+            </td>
+            <td>
+                This will run a background task that will remove deleted images from the filesystem and the database.
+            </td>
+        </tr>
     </table>
 <script>
 
@@ -127,18 +135,21 @@
         $("#btnRegenArtifacts").click(function(e) {
             e.preventDefault();
             $.ajax("${createLink(controller:'webService', action:'scheduleArtifactGeneration')}").done(function() {
+                window.location = "${createLink(action:'tools')}";
             });
         });
 
         $("#btnRegenThumbnails").click(function(e) {
             e.preventDefault();
             $.ajax("${createLink(controller:'webService', action:'scheduleThumbnailGeneration')}").done(function() {
+                window.location = "${createLink(action:'tools')}";
             });
         });
 
         $("#btnRebuildKeywords").click(function(e) {
             e.preventDefault();
             $.ajax("${createLink(controller:'webService', action:'scheduleKeywordRegeneration')}").done(function() {
+                window.location = "${createLink(action:'tools')}";
             });
         });
 
@@ -176,6 +187,11 @@
         $("#btnClearCollectoryCache").click(function(e) {
             e.preventDefault();
             window.location = "${createLink(action:'clearCollectoryCache')}";
+        });
+
+        $("#btnPurgeDeletedImages").click(function(e) {
+            e.preventDefault();
+            window.location = "${createLink(action:'scheduleDeletedImagesPurge')}";
         });
     });
 

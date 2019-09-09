@@ -1,10 +1,7 @@
 package au.org.ala.images
 
-import au.org.ala.cas.util.AuthenticationUtils
-import grails.transaction.Transactional
 import org.springframework.web.multipart.MultipartFile
 
-@Transactional
 class TagService {
 
     def logService
@@ -137,7 +134,7 @@ class TagService {
     }
 
     def updateTags(Image image, List tags, String userId){
-        if(tags) {
+        if (tags && image) {
             tags.each { String tagPath ->
                 def tag = createTagByPath(tagPath)
                 attachTagToImage(image, tag, userId)
@@ -152,7 +149,7 @@ class TagService {
         }
 
         boolean addedAtLeastOneTag = false
-
+        def alreadyTagged = false
         def allTags = [tag]
         def parents = findParentTagsByPath(tag.path)
         allTags.addAll(parents)
@@ -169,7 +166,7 @@ class TagService {
         }
         rebuildKeywords(image)
         auditService.log(image, "Tag attached to image: ${tag.path}", userId)
-        return addedAtLeastOneTag
+        addedAtLeastOneTag
     }
 
     def detachTagFromImage(Image image, Tag tag) {

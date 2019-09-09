@@ -10,37 +10,36 @@ import java.lang.reflect.Method
  * To add a new setting simply define a getter with the preferred type of the setting (currently boolean or String)
  * and mark it with the @ImageServiceSetting annotation to describe it's name, description and default (initial) value
  */
-@Transactional
 class SettingService {
 
     def logService
 
     @ImageServiceSetting(name = 'background.tiling.enabled', description = "Should the service perform image tiling in the background", defaultValue = "true")
-    public boolean getTilingEnabled() {
+    boolean getTilingEnabled() {
         return getBoolSetting()
     }
 
     @ImageServiceSetting(name = 'background.tasks.enabled', description = "Should the service perform thumbnailing and ingesting", defaultValue = "true")
-    public boolean getBackgroundTasksEnabled() {
+    boolean getBackgroundTasksEnabled() {
         return getBoolSetting()
     }
 
     @ImageServiceSetting(name = 'outsourced.task.checking.enabled', description = "Should the service check the status of outsourced tiling jobs", defaultValue = "true")
-    public boolean getOutsourcedTaskCheckingEnabled() {
+    boolean getOutsourcedTaskCheckingEnabled() {
         return getBoolSetting()
     }
 
     @ImageServiceSetting(name = 'stagedimages.purge.stalefiles', description = "Should the service automatically purge old staged files", defaultValue = "true")
-    public boolean getPurgeStagedFilesEnabled() {
+    boolean getPurgeStagedFilesEnabled() {
         return getBoolSetting()
     }
 
     @ImageServiceSetting(name = 'stagedimages.file.lifespan.hours', description = "How long should a user staged file hang around before being cleaned up (in hours)", defaultValue = "24")
-    public Integer getStagedFileLifespanInHours() {
+    Integer getStagedFileLifespanInHours() {
         return getIntSetting()
     }
 
-    public setSettingValue(String name, String value) {
+    void setSettingValue(String name, String value) {
         def setting = Setting.findByName(name)
         if (!setting) {
             throw new RuntimeException("No such setting: ${name}")
@@ -135,6 +134,4 @@ class SettingService {
             }
         }
     }
-
-
 }

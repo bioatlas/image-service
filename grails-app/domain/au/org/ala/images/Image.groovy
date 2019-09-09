@@ -43,7 +43,10 @@ class Image {
     String rightsHolder
     @SearchableProperty(description="A legal document giving official permission to do something with the resource.")
     String license
+    @SearchableProperty(description="Associated occurrence ID.")
+    String occurrenceId
 
+    String calibratedByUser
     License recognisedLicense
 
     @SearchableProperty(valueType = CriteriaValueType.NumberRangeInteger, units = "pixels", description = "The height of the thumbnail in pixels")
@@ -89,9 +92,11 @@ class Image {
         thumbWidth nullable: true
         squareThumbSize nullable: true
         mmPerPixel nullable: true
+        calibratedByUser nullable:true
         harvestable nullable: true
 
         dateDeleted  nullable: true
+        occurrenceId nullable: true
     }
 
     static mapping = {

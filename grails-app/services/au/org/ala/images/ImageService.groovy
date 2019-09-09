@@ -3,7 +3,6 @@ package au.org.ala.images
 import au.org.ala.images.metadata.MetadataExtractor
 import au.org.ala.images.thumb.ThumbnailingResult
 import au.org.ala.images.tiling.TileFormat
-import grails.transaction.Transactional
 import groovy.sql.Sql
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.imaging.Imaging
@@ -22,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentLinkedQueue
 
-@Transactional
 class ImageService {
 
     def dataSource
@@ -40,6 +38,8 @@ class ImageService {
 
     private static int BACKGROUND_TASKS_BATCH_SIZE = 100
 
+    Map imagePropertyMap = null
+
     ImageStoreResult storeImage(MultipartFile imageFile, String uploader, Map metadata = [:]) {
 
         if (imageFile) {
@@ -56,6 +56,15 @@ class ImageService {
     ImageStoreResult storeImageFromUrl(String imageUrl, String uploader, Map metadata = [:]) {
         if (imageUrl) {
             try {
+                def image = Image.findByOriginalFilename(imageUrl)
+                if (image){
+                    //check file exists
+                    def file = imageStoreService.getOriginalImageFile(image.imageIdentifier)
+                    if (file.exists() && file.size() > 0){
+                        updateMetadata(image, metadata)
+                        return new ImageStoreResult(image, true)
+                    }
+                }
                 def url = new URL(imageUrl)
                 def bytes = url.bytes
                 def contentType = detectMimeTypeFromBytes(bytes, imageUrl)
@@ -89,7 +98,7 @@ class ImageService {
                             result.success = true
                             auditService.log(storeResult.image, "Image (batch) downloaded from ${imageUrl}", uploader ?: "<unknown>")
                         } catch (Exception ex) {
-                            ex.printStackTrace()
+                            log.error("Problem storing image - " + ex.getMessage(), ex)
                             result.message = ex.message
                         }
                         results[imageUrl] = result
@@ -117,6 +126,18 @@ class ImageService {
 
     def clearTilingTaskQueueLength() {
         return _tilingQueue.clear();
+    }
+
+    void updateMetadata(Image image, Map metadata = [:]) {
+        //update metadata
+        metadata.each { kvp ->
+            if(image.hasProperty(kvp.key) && kvp.value){
+                if(!(kvp.key in ["dateTaken", "dateUploaded", "id"])){
+                    image[kvp.key] = kvp.value
+                }
+            }
+        }
+        image.save(flush:true, failOnError: true)
     }
 
     ImageStoreResult storeImageBytes(byte[] bytes, String originalFilename, long filesize, String contentType,
@@ -152,9 +173,10 @@ class ImageService {
 
         //update metadata
         metadata.each { kvp ->
-            if(image.hasProperty(kvp.key) && kvp.value){
-                if(!(kvp.key in ["dateTaken", "dateUploaded", "id"])){
-                    image[kvp.key] = kvp.value
+            def propertyName = hasImageCaseFriendlyProperty(image, kvp.key)
+            if (propertyName && kvp.value){
+                if(!(propertyName in ["dateTaken", "dateUploaded", "id"])){
+                    image[propertyName] = kvp.value
                 }
             }
         }
@@ -164,13 +186,25 @@ class ImageService {
         new ImageStoreResult(image, preExisting)
     }
 
+
+    def hasImageCaseFriendlyProperty(Image image, String propertyName){
+        if (!imagePropertyMap) {
+            def properties = image.getProperties().keySet()
+            imagePropertyMap = [:]
+            properties.each { imagePropertyMap.put(it.toLowerCase(), it) }
+        }
+        imagePropertyMap.get(propertyName.toLowerCase())
+    }
+
+
+
     def schedulePostIngestTasks(Long imageId, String identifier, String fileName, String uploaderId){
         scheduleArtifactGeneration(imageId, uploaderId)
         scheduleImageIndex(imageId)
         scheduleImageMetadataPersist(imageId,identifier, fileName,  MetaDataSourceType.Embedded, uploaderId)
     }
 
-    def scheduleNonImagePostIngestTasks(Long imageId, String identifier, String fileName, String uploaderId){
+    def scheduleNonImagePostIngestTasks(Long imageId){
         scheduleImageIndex(imageId)
     }
 
@@ -367,8 +401,10 @@ class ImageService {
         List<ThumbnailingResult> results
         if (isAudioType(image)) {
             results = imageStoreService.generateAudioThumbnails(image.imageIdentifier)
-        } else {
+        } else if (isImageType(image)) {
             results = imageStoreService.generateImageThumbnails(image.imageIdentifier)
+        } else {
+            results = imageStoreService.generateDocumentThumbnails(image.imageIdentifier)
         }
 
         // These are deprecated, but we'll update them anyway...
@@ -399,50 +435,7 @@ class ImageService {
 
         if (image) {
 
-            // need to delete it from user selections
-            def selected = SelectedImage.findAllByImage(image)
-            selected.each { selectedImage ->
-                selectedImage.delete()
-            }
-
-            // Need to delete tags
-            def tags = ImageTag.findAllByImage(image)
-            tags.each { tag ->
-                tag.delete()
-            }
-
-            // Delete keywords
-            def keywords = ImageKeyword.findAllByImage(image)
-            keywords.each { keyword ->
-                keyword.delete()
-            }
-
-            // If this image is a subimage, also need to delete any subimage rectangle records
-            def subimagesRef = Subimage.findAllBySubimage(image)
-            subimagesRef.each { subimage ->
-                subimage.delete()
-            }
-
-            // This image may also be a parent image
-            def subimages = Subimage.findAllByParentImage(image)
-            subimages.each { subimage ->
-                // need to detach this image from the child images, but we do not actually delete the sub images. They
-                // will live on as root images in their own right
-                subimage.subimage.parent = null
-                subimage.delete()
-            }
-
-            // and delete album images
-            def albumImages = AlbumImage.findAllByImage(image)
-            albumImages.each { albumImage ->
-                albumImage.delete()
-            }
-
-            // thumbnail records...
-            def thumbs = ImageThumbnail.findAllByImage(image)
-            thumbs.each { thumb ->
-                thumb.delete()
-            }
+            deleteRelatedArtefacts(image)
 
             // Delete from the index...
             elasticSearchService.deleteImage(image)
@@ -459,6 +452,59 @@ class ImageService {
         return false
     }
 
+    private def deleteRelatedArtefacts(Image image){
+
+        // need to delete it from user selections
+        def selected = SelectedImage.findAllByImage(image)
+        selected.each { selectedImage ->
+            selectedImage.delete()
+        }
+
+        // Need to delete tags
+        def tags = ImageTag.findAllByImage(image)
+        tags.each { tag ->
+            tag.delete()
+        }
+
+        // Delete keywords
+        def keywords = ImageKeyword.findAllByImage(image)
+        keywords.each { keyword ->
+            keyword.delete()
+        }
+
+        // If this image is a subimage, also need to delete any subimage rectangle records
+        def subimagesRef = Subimage.findAllBySubimage(image)
+        subimagesRef.each { subimage ->
+            subimage.delete()
+        }
+
+        // This image may also be a parent image
+        def subimages = Subimage.findAllByParentImage(image)
+        subimages.each { subimage ->
+            // need to detach this image from the child images, but we do not actually delete the sub images. They
+            // will live on as root images in their own right
+            subimage.subimage.parent = null
+            subimage.delete()
+        }
+
+        // thumbnail records...
+        def thumbs = ImageThumbnail.findAllByImage(image)
+        thumbs.each { thumb ->
+            thumb.delete()
+        }
+    }
+
+    def deleteImagePurge(Image image) {
+        if (image && image.dateDeleted) {
+            deleteRelatedArtefacts(image)
+            imageStoreService.deleteImage(image.imageIdentifier)
+            //hard delete
+            image.delete(flush:true)
+            return true
+        }
+        return false
+    }
+
     List<File> listStagedImages() {
         def files = []
         def inboxLocation = grailsApplication.config.imageservice.imagestore.inbox as String
@@ -470,8 +516,6 @@ class ImageService {
     }
 
     Image importFileFromInbox(File file, String batchId, String userId) {
-
-        CodeTimer ct = new CodeTimer("Import file ${file?.absolutePath}")
 
         if (!file || !file.exists()) {
             throw new RuntimeException("Could not read file ${file?.absolutePath} - Does not exist")
@@ -510,6 +554,8 @@ class ImageService {
             if (!FileUtils.deleteQuietly(file)) {
                 file.deleteOnExit()
             }
+            // schedule an index
+            scheduleImageIndex(image.id)
             // also we should do the thumb generation (we'll defer tiles until after the load, as it will slow everything down)
             scheduleTileGeneration(image.id, userId)
         }
@@ -523,7 +569,6 @@ class ImageService {
         inboxDirectory.eachFile { File file ->
             _backgroundQueue.add(new ImportFileBackgroundTask(file, this, batchId, userId))
         }
-
     }
 
     private static String sanitizeString(Object value) {
@@ -710,8 +755,8 @@ class ImageService {
             def subimage = storeImageBytes(results.bytes,filename, results.bytes.length, results.contentType, userId, metadata).image
 
             def subimageRect = new Subimage(parentImage: parentImage, subimage: subimage, x: x, y: y, height: height, width: width)
-            subimageRect.save()
             subimage.parent = parentImage
+            subimageRect.save(flush:true)
 
             auditService.log(parentImage, "Subimage created ${subimage.imageIdentifier}", userId)
             auditService.log(subimage, "Subimage created from parent image ${parentImage.imageIdentifier}", userId)
@@ -797,7 +842,8 @@ class ImageService {
 
     def resetImageLinearScale(Image image) {
         image.mmPerPixel = null;
-        image.save()
+        image.calibratedByUser = null
+        image.save(flush:true)
         scheduleImageIndex(image.id)
     }
 
@@ -821,7 +867,8 @@ class ImageService {
         def mmPerPixel = (actualLength * scale) / pixelLength
 
         image.mmPerPixel = mmPerPixel
-        image.save()
+        image.calibratedByUser = userId
+        image.save(flush:true)
         scheduleImageIndex(image.id)
 
         return mmPerPixel
@@ -913,6 +960,37 @@ class ImageService {
         return image
     }
 
+    def UUID_PATTERN = ~/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/
+
+
+    def getImageGUIDFromParams(params) {
+
+        if(params.id){
+            //if it a GUID, avoid database trip if possible....
+            if (UUID_PATTERN.matcher(params.id).matches()){
+                return params.id
+            }
+            if(params.id ){
+                def image = Image.findById(params.int("id"))
+                if(image) {
+                    return image.imageIdentifier
+                }
+            }
+        } else if(params.imageId){
+            //if it a GUID, avoid database trip if possible....
+            if (UUID_PATTERN.matcher(params.imageId).matches()){
+                return params.imageId
+            }
+            if(params.id ){
+                def image = Image.findById(params.int("imageId"))
+                if (image) {
+                    return image.imageIdentifier
+                }
+            }
+        }
+        return null
+    }
+
     /**
      * Export CSV. This uses a stored procedure that needs to be installed as part of the
      * service installation.
@@ -934,6 +1012,7 @@ class ImageService {
      * @return
      */
     File exportCSVToFile(){
+        FileUtils.forceMkdir(new File(grailsApplication.config.imageservice.exportDir))
         def exportFile = grailsApplication.config.imageservice.exportDir + "/images.csv"
         new Sql(dataSource).call("""{ call export_images() }""")
         new File(exportFile)
@@ -947,6 +1026,7 @@ class ImageService {
      * @return
      */
     File exportIndexToFile(){
+        FileUtils.forceMkdir(new File(grailsApplication.config.imageservice.exportDir))
         def exportFile = grailsApplication.config.imageservice.exportDir + "/images-index.csv"
         new Sql(dataSource).call("""{ call export_index() }""")
         new File(exportFile)

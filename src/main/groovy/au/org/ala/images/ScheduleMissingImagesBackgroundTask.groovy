@@ -2,6 +2,7 @@ package au.org.ala.images
 
 import com.opencsv.CSVWriter
 import org.apache.log4j.Logger
+import org.apache.tomcat.util.http.fileupload.FileUtils
 
 /**
  * Cycles through the database outputting details of images that are referenced in the database
@@ -20,7 +21,14 @@ class ScheduleMissingImagesBackgroundTask extends BackgroundTask {
 
     @Override
     void execute() {
-        def writer = new CSVWriter(new FileWriter(new File(_exportDirectory + "/missing-images.csv")))
+
+
+        def exportDir = new File(_exportDirectory)
+        if (!exportDir.exists()) {
+            FileUtils.forceMkdir(new File(_exportDirectory))
+        }
+
+        def writer = new CSVWriter(new FileWriter(new File(exportDir, "/missing-images.csv")))
         writer.writeNext((String[])["imageIdentifier", "directory", "status"].toArray())
         def c = Image.createCriteria()
         def imageIds = c.list {
@@ -42,7 +50,7 @@ class ScheduleMissingImagesBackgroundTask extends BackgroundTask {
             }
             counter += 1
         }
-        if(counter % 1000 == 0){
+        if (counter % 1000 == 0){
             log.info("Missing image check: " + counter)
         }
 

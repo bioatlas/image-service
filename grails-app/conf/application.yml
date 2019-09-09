@@ -1,4 +1,7 @@
 ---
+info:
+    app:
+        name: 'image-service'
 grails:
     serverURL: 'http://dev.ala.org.au:8080'
     profile: web
@@ -70,6 +73,9 @@ grails:
                 taglib: none
                 staticparts: none
 
+server:
+    contextPath: ''
+
 ---
 hibernate:
     cache:
@@ -85,10 +91,11 @@ dataSource:
 
 environments:
     development:
-        hibernate:
-            dialect: org.hibernate.dialect.PostgreSQLDialect
+#        hibernate:
+#            dialect: org.hibernate.dialect.PostgreSQLDialect
         dataSource:
             dbCreate: update
+#            driverClassName: org.postgresql.Driver
             url: jdbc:postgresql://localhost/images?autoReconnect=true&connectTimeout=0&useUnicode=true&characterEncoding=UTF-8
             username: "images"
             password: "images"
@@ -103,11 +110,34 @@ environments:
             password: 'images'
             dbCreate: update
             url: jdbc:h2:mem:images;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+        imageservice:
+            imagestore:
+                root: '/tmp/image-service/store'
+                inbox: '/tmp/image-service/incoming'
+            exportDir: '/tmp/image-service/exports'
+    travis:
+        hibernate:
+            dialect: org.hibernate.dialect.H2Dialect
+        dataSource:
+            pooled: true
+            jmxExport: true
+            driverClassName: org.h2.Driver
+            username: 'images'
+            password: 'images'
+            dbCreate: update
+            url: jdbc:h2:mem:images;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
+        imageservice:
+            imagestore:
+                root: '/home/travis/build/AtlasOfLivingAustralia/image-service/temp-store'
+                inbox: '/home/travis/build/AtlasOfLivingAustralia/image-service/temp-incoming'
+            exportDir: '/home/travis/build/AtlasOfLivingAustralia/image-service/temp-exports'
+
     production:
         hibernate:
             dialect: org.hibernate.dialect.PostgreSQLDialect
         dataSource:
             dbCreate: update
+            driverClassName: org.postgresql.Driver
             url: jdbc:postgresql://localhost/images?autoReconnect=true&connectTimeout=0&useUnicode=true&characterEncoding=UTF-8
             properties:
                 jmxEnabled: true
@@ -131,13 +161,14 @@ security:
     cas:
         appServerName: 'http://dev.ala.org.au:8080'
         uriFilterPattern: '/admin/.*,/admin,/admin/,/image/deleteImage/.*'
-        authenticateOnlyIfLoggedInPattern:  ''
+        authenticateOnlyIfLoggedInPattern:  '/ws/createSubimage'
         bypass: false
         disableCAS: false
 
 imageservice:
     imagestore:
         root: '/data/image-service/store'
+        inbox: '/data/image-service/incoming'
     apache:
         root: 'http://localhost:8880/store/'
         # space separated list
@@ -161,7 +192,6 @@ quartz:
         scheduler:
             skipUpdateCheck: true
 
-
 ---
 info:
     app:
@@ -177,7 +207,7 @@ spring:
 
 # Spring Actuator Endpoints are Disabled by Default
 endpoints:
-    enabled: false
+    enabled: true
     jmx:
         enabled: true
 
@@ -214,13 +244,17 @@ swagger:
                 in: "header"
                 name: "Authorization"
 
-facets: ["recognisedLicence", "dataResourceUid", "creator", "imageSize", "format", "dateUploadedYearMonth"]
+facets: ["recognisedLicence", "dataResourceUid", "creator", "imageSize", "fileType", "format", "dateUploadedYearMonth"]
 
 analytics:
+    credentialsJson: "/data/image-service/config/google-analytics.json"
     URL: "https://www.google-analytics.com"
     ID: "UA-4355440-1"
     baseURL: "https://www.googleapis.com/analytics/v3/data/ga"
     viewID: "ga:8736349"
+    trackThumbnails: false
+    trackLargeViewer: false
+    trackDetailedView: false
 
 elasticsearch:
   indexName: "images"
@@ -228,3 +262,5 @@ elasticsearch:
   scheme: "http"
   port1: 9200
   port2: 9201
+  maxFacetSize: 10000
+  maxOffset: 10000

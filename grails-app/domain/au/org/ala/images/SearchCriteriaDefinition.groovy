@@ -2,6 +2,8 @@ package au.org.ala.images
 
 class SearchCriteriaDefinition implements Serializable {
 
+    private static final long serialVersionUID = -68799122222905033L;
+
     CriteriaType type
     CriteriaValueType valueType
 

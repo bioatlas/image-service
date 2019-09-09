@@ -8,7 +8,7 @@ class PollInboxBackgroundTask extends BackgroundTask {
     String batchId
     String userId
 
-    public PollInboxBackgroundTask(ImageService imageService, String userId) {
+    PollInboxBackgroundTask(ImageService imageService, String userId) {
         this.imageService = imageService
         this.userId = userId
         def sdf = new SimpleDateFormat("yyyyMMddHHmmss")

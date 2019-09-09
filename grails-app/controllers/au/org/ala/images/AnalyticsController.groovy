@@ -39,7 +39,7 @@ class AnalyticsController {
             nickname = "analytics/{dataResourceUID}",
             produces = "application/json",
             consumes = "application/json",
-            httpMethod = "POST",
+            httpMethod = "GET",
             response = Map.class
     )
     @ApiResponses([
@@ -67,7 +67,7 @@ class AnalyticsController {
             nickname = "analytics",
             produces = "application/json",
             consumes = "application/json",
-            httpMethod = "POST",
+            httpMethod = "GET",
             response = Map.class
     )
     @ApiResponses([

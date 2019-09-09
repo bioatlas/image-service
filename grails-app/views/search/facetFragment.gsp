@@ -1,4 +1,8 @@
 
+<g:if test="${facetValues.size() >= grailsApplication.config.elasticsearch.maxFacetSize.toInteger()}">
+<p>Note: Only the first ${grailsApplication.config.elasticsearch.maxFacetSize.toInteger()} are displayed</p>
+</g:if>
+
 <table class="table table-bordered table-condensed table-striped scrollTable" id="fullFacets">
 <thead>
 <th><g:message code="facet.${facet}" default="${facet}"/></th>
