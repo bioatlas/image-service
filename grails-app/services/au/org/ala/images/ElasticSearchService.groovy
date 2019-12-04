@@ -30,10 +30,7 @@ import org.elasticsearch.action.search.SearchType
 import org.elasticsearch.client.RequestOptions
 import org.elasticsearch.client.RestClient
 import org.elasticsearch.client.RestHighLevelClient
-import org.elasticsearch.cluster.ClusterState
-import org.elasticsearch.cluster.metadata.IndexMetaData
 import org.elasticsearch.index.query.BoolQueryBuilder
-import org.elasticsearch.index.query.QueryBuilder
 import org.elasticsearch.index.query.QueryBuilders
 import org.elasticsearch.index.query.QueryStringQueryBuilder
 import org.elasticsearch.search.Scroll
@@ -548,21 +545,31 @@ class ElasticSearchService {
     private SearchSourceBuilder pagenateQuery(Map params) {
 
         int maxOffset = grailsApplication.config.elasticsearch.maxOffset as int
-
+        int maxPageSize = grailsApplication.config.elasticsearch.maxPageSize as int
+        int defaultPageSize = grailsApplication.config.elasticsearch.defaultPageSize as int
 
         SearchSourceBuilder source = new SearchSourceBuilder()
 
-        if(params.offset && params.max && (params.offset as int) + (params.max as int) >= maxOffset ){
-            //max default max offset is 10000 for elastic search
-            source.from(maxOffset - (params.max as int))
-            source.size(params.max ? params.max as int : 10)
-        } else {
-            if (params.offset && (params.offset as int)  >= maxOffset){
-                source.from(maxOffset) //limit to 10000
+        //set the page size
+        if (params.max){
+            if ((params.max as int) > maxPageSize){
+                source.size(maxPageSize)
             } else {
-                source.from(params.offset ? params.offset as int : 0)
+                source.size((params.max as int))
             }
-            source.size(params.max ? params.max as int : 10)
+        } else {
+            source.size(defaultPageSize)
+        }
+
+        //set the offset
+        if (params.offset){
+            if ((params.offset as int) > maxOffset){
+                source.from(maxOffset - source.size())
+            } else {
+                source.from((params.offset as int))
+            }
+        } else {
+            source.from(0)
         }
 
         source.sort('dateUploaded', SortOrder.DESC)
@@ -615,8 +622,32 @@ class ElasticSearchService {
                                        "type": "keyword"
                                     },                                                                     
                                     "creator": {
-                                      "type": "keyword"
-                                    },                                                                     
+                                      "type": "text",
+                                      "fielddata": true,
+                                      "fields": {
+                                        "keyword": { 
+                                          "type": "keyword"
+                                        }
+                                      }                                      
+                                    },          
+                                    "title": {
+                                      "type": "text",
+                                      "fielddata": true,
+                                      "fields": {
+                                        "keyword": { 
+                                          "type": "keyword"
+                                        }
+                                      }                                      
+                                    }, 
+                                    "description": {
+                                      "type": "text",
+                                      "fielddata": true,
+                                      "fields": {
+                                        "keyword": { 
+                                          "type": "keyword"
+                                        }
+                                      }                                      
+                                    },                                                                                                                                    
                                     "width": {
                                       "type": "integer"
                                     },                                                                     
@@ -677,6 +708,18 @@ class ElasticSearchService {
         boolQueryBuilder
     }
 
+    def filtered = ['class', 'active', 'metaClass', 'tags', 'keywords', 'metadata']
+
+    Map asMap(Image image) {
+
+        def props = image.properties.collect{it}.findAll { !filtered.contains(it.key) }
+        def map =  [:]
+        props.each {
+            map[it.key] = it.value
+        }
+        map
+    }
+
     Map searchByMetadata(String key, List<String> values, GrailsParameterMap params) {
 
         def properties = getMetadataKeys()
@@ -701,7 +744,7 @@ class ElasticSearchService {
             if (params?.max) {
                 searchSourceBuilder.size(params.int("max"))
             } else {
-                searchSourceBuilder.size(grailsApplication.config.elasticsearch.maxOffset) // probably way too many!
+                searchSourceBuilder.size(grailsApplication.config.elasticsearch.maxPageSize) // probably way too many!
             }
 
             if (params?.sort) {
@@ -724,7 +767,8 @@ class ElasticSearchService {
                     def image =  Image.findByImageIdentifier(hit.id)
                     image.metadata = null
                     image.tags = null
-                    imageList << image
+                    def imageAsMap = asMap(image)
+                    imageList << imageAsMap
                 }
             }
             ct.stop(true)
@@ -734,7 +778,7 @@ class ElasticSearchService {
             imageList.each {
 
                 def caseInsensitiveMap = [:]
-                it.properties.each { k, v -> caseInsensitiveMap[k.toLowerCase()] = v }
+                it.each { k, v -> caseInsensitiveMap[k.toLowerCase()] = v }
                 def keyValue = caseInsensitiveMap.get(indexField.toLowerCase())
                 def list = resultsKeyedByValue.get(keyValue, [])
                 list << it

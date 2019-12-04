@@ -46,32 +46,40 @@ class SearchSpec extends Specification {
     }
 
 
-    void 'test search for previous upload'(){
+    void 'test search for previous upload'() {
 
         when:
+
+        Thread.sleep(5000)
 
         boolean hasBacklog = true
         int counter = 0
         int MAX_CHECKS = 10
 
 
-        while (hasBacklog && counter < MAX_CHECKS){
+        while (hasBacklog && counter < MAX_CHECKS) {
             RestResponse statsResp = rest.get("http://localhost:${serverPort}/ws/backgroundQueueStats")
             def json = new JsonSlurper().parseText(statsResp.body)
-            if(json.queueLength > 0){
+            if (json.queueLength > 0) {
+                println("Queue length: " + json.queueLength)
                 Thread.sleep(5000)
             } else {
                 hasBacklog = false
             }
-            counter +=1
+            counter += 1
         }
 
+        RestResponse countsResp = rest.get("http://localhost:${serverPort}/ws/search")
+        def jsonCount = new JsonSlurper().parseText(countsResp.body)
+        jsonCount
+
+//        def occurrenceID = "f4c13adc-2926-44c8-b2cd-fb2d62378a1a"
         //search by occurrence ID
-        RestResponse resp = rest.post("http://localhost:${serverPort}/ws/findImagesByMetadata",{
+        RestResponse resp = rest.post("http://localhost:${serverPort}/ws/findImagesByMetadata", {
             json {
                 [
-                    "key": "occurrenceid",
-                    "values": ["f4c13adc-2926-44c8-b2cd-fb2d62378a1a"]
+                        "key"   : "occurrenceid",
+                        "values": ["f4c13adc-2926-44c8-b2cd-fb2d62378a1a"]
                 ]
             }
         })
@@ -80,5 +88,14 @@ class SearchSpec extends Specification {
         then:
         resp.status == 200
         jsonResponse.count > 0
+        //check for legacy fields
+        jsonResponse.images.size() > 0
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].imageId != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].tileZoomLevels != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].filesize != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].imageUrl != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].largeThumbUrl != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].squareThumbUrl != null
+        jsonResponse.images.get("f4c13adc-2926-44c8-b2cd-fb2d62378a1a")[0].thumbUrl != null
     }
 }

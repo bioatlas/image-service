@@ -11,6 +11,10 @@
         <style>
             td.property-value { font-weight: bold !important; }
             .audiojs { width: 100%; }
+            .audiojs .play-pause {
+                padding-left:0px;
+                padding-right:5px;
+            }
             .tab-pane { padding-top: 20px !important; }
             .tabbable { font-size: 9pt; margin-top:10px; }
             div#main { padding-top: 0px; }
@@ -138,7 +142,7 @@
         </div>
 
         <asset:javascript src="ala/images-client.js"/>
-        <asset:javascript src="audiojs/audio.min.js"/>
+        <asset:javascript src="audio.min.js"/>
 
     <script>
 
@@ -187,7 +191,9 @@
             $('#viewerContainerId .document-icon').css('background-image', 'url("${grailsApplication.config.placeholder.sound.large}")');
             $('#viewerContainerId .document-icon').css('background-repeat', 'no-repeat');
             $('#viewerContainerId').css('background-position', 'center');
-            audiojs.createAll();
+
+
+            audiojs.createAll({});
             </g:elseif>
             <g:else>
             $('#viewerContainerId .document-icon').css('background-image', 'url("${grailsApplication.config.placeholder.document.large}")');

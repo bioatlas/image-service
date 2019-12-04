@@ -16,7 +16,8 @@ class LicenseMatchingBackgroundTask extends BackgroundTask {
     void execute() {
         def imageInstance = Image.get(_imageId)
         if (imageInstance) {
-            _imageService.updateLicence(imageInstance)
+            def image = _imageService.updateLicence(imageInstance)
+            image.save(flush:true)
         }
     }
 }

@@ -1,3 +1,4 @@
+<%@ page import="au.org.ala.images.License" %>
 <!doctype html>
 <html>
     <head>
@@ -9,11 +10,20 @@
         <asset:javascript src="images-client.js" />
     </head>
     <body>
-
         <content tag="pageTitle">Upload images</content>
         <div>
             <g:if test="${flash.message}">
-                <div class="alert alert-success" style="display: block">${flash.message}</div>
+                <div class="alert alert-success" style="display: block">
+                    <g:if test="${params.newImageId}">
+                        New image created - click to view
+                        <g:link controller="image" action="details" params="[imageId:params.newImageId]">
+                        ${params.newImageId}
+                        </g:link>
+                    </g:if>
+                    <g:else>
+                        ${flash.message}
+                    </g:else>
+                </div>
             </g:if>
             <g:if test="${flash.errorMessage}">
                 <div class="alert alert-danger" style="display: block">${flash.errorMessage}</div>
@@ -21,20 +31,17 @@
 
             <div class="row">
                 <div class="well">
-                    <h1>Bulk Upload</h1>
+                    <h1>Bulk Upload with CSV file</h1>
                     <g:uploadForm class="form-horizontal" name="csvFileUploadForm" >
-                        <div class="well">
+                        <p>
                             The file must contain column headings, and must have at least one column called <code>imageUrl</code> which contains a url to an image. Data in other columns will be stored as metadata against the image.
-                        </div>
-                        <div class="control-group">
-                            <label class="control-label" for="imagefile">Select a file</label>
-                            <div class="controls">
-                                <input type="file" name="csvfile" id="imagefile"/>
-                            </div>
+                        </p>
+                        <div class="form-group" style="margin-left:0px;">
+                            <label for="imagefile">CSV file upload</label>
+                            <input type="file"  class="form-control-file" name="csvfile" id="imagefile"/>
                         </div>
 
-                        <div id="resultsDiv" style="display: none">
-                        </div>
+                        <div id="resultsDiv" style="display: none"></div>
 
                         <div class="control-group">
                             <div class="controls">
@@ -109,8 +116,44 @@
                     <div class="well">
                         <h1>Single Image Upload</h1>
                         <g:form action="storeImage" controller="admin" method="post" enctype="multipart/form-data">
-                            <input type="file" name="image" />
-                            <g:submitButton class="btn btn-small btn-primary" name="Upload"/>
+                            <div class="form-group">
+                                <label for="dataResourceUid">Data resource UID e.g. dr376 (retrieve from collectory)</label>
+                                <input type="text" class="form-control" id="dataResourceUid" name="dataResourceUid">
+                            </div>
+                            <div class="form-group">
+                                <label for="title">Title</label>
+                                <input type="text" class="form-control" id="title" name="title">
+                            </div>
+                            <div class="form-group">
+                                <label for="creator">Creator</label>
+                                <input type="text" class="form-control" id="creator" name="creator">
+                            </div>
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <input type="text" class="form-control" id="description" name="description">
+                            </div>
+                            <div class="form-group">
+                                <label for="rights">Rights</label>
+                                <input type="text" class="form-control" id="rights" name="rights">
+                            </div>
+                            <div class="form-group">
+                                <label for="rightsHolder">Rights holder</label>
+                                <input type="text" class="form-control" id="rightsHolder" name="rightsHolder">
+                            </div>
+                            <div class="form-group">
+                                <label for="license">Licence</label>
+                                <g:select name="license"
+                                          class="form-control"
+                                          from="${au.org.ala.images.License.list()}"
+                                          value=""
+                                          optionKey="url"
+                                          optionValue="name"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <input type="file" name="image"  />
+                            </div>
+                            <g:submitButton class="btn btn-primary" name="Upload"/>
                         </g:form>
                     </div>
             </div>

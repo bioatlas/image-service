@@ -38,19 +38,10 @@ class ImageController {
         redirect(controller: 'search', action:'list')
     }
 
-    @ApiOperation(
-            value = "Get original image",
-            nickname = "{id}/original",
-            produces = "image/jpeg",
-            httpMethod = "GET"
-    )
-    @ApiResponses([
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Image Not Found")]
-    )
-    @ApiImplicitParams([
-            @ApiImplicitParam(name = "id", paramType = "path", required = true, value = "Image Id", dataType = "string")
-    ])
+    /**
+     * @deprecated use getOriginalFile instead.
+     */
+    @Deprecated
     def proxyImage() {
         def imageIdentifier = imageService.getImageGUIDFromParams(params)
         if (imageIdentifier) {
@@ -66,6 +57,38 @@ class ImageController {
         }
     }
 
+    @ApiOperation(
+            value = "Get original image, sound or video file.",
+            nickname = "{id}/original",
+            produces = "image/jpeg",
+            httpMethod = "GET"
+    )
+    @ApiResponses([
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Image Not Found")]
+    )
+    @ApiImplicitParams([
+            @ApiImplicitParam(name = "id", paramType = "path", required = true, value = "Image Id", dataType = "string")
+    ])
+    def getOriginalFile() {
+        def imageIdentifier = imageService.getImageGUIDFromParams(params)
+        if (imageIdentifier) {
+            def imageInstance = Image.findByImageIdentifier(imageIdentifier)
+            def imageUrl = imageService.getImageUrl(imageIdentifier)
+            boolean contentDisposition = params.boolean("contentDisposition")
+            proxyImageRequest(response, imageUrl, imageIdentifier, imageInstance.extension, imageInstance.mimeType, imageInstance.fileSize.toInteger(), contentDisposition)
+            if (grailsApplication.config.analytics.trackThumbnails.toBoolean()) {
+                sendAnalytics(imageInstance, 'imageview')
+            }
+        } else {
+            response.sendError(404, "Image not found")
+        }
+    }
+
+    /**
+     * This method serves the image from the file system where possible for better performance.
+     * proxyImageThumbnail is used heavily by applications rendering search results (biocache, BIE).
+     */
     @ApiOperation(
             value = "Get image thumbnail",
             nickname = "{id}/thumbnail",
@@ -96,9 +119,9 @@ class ImageController {
                 def imageInstance = Image.findByImageIdentifier(imageIdentifier)
                 if (imageInstance) {
                     if (imageInstance.mimeType.startsWith('audio')) {
-                        proxyImageRequest(response, grailsApplication.config.placeholder.sound.thumbnail as String, imageIdentifier, "jpg", "image/jpeg", 0, addContentDisposition)
+                        proxyImageRequest(response, grailsApplication.config.placeholder.sound.thumbnail as String, imageIdentifier, imageInstance.extension, imageInstance.mimeType, 0, addContentDisposition)
                     } else {
-                        proxyImageRequest(response, grailsApplication.config.placeholder.document.thumbnail as String, imageIdentifier, "jpg", "image/jpeg", 0, addContentDisposition)
+                        proxyImageRequest(response, grailsApplication.config.placeholder.document.thumbnail as String, imageIdentifier, imageInstance.extension, imageInstance.mimeType, 0, addContentDisposition)
                     }
                 } else {
                     response.sendError(404, "Resource not found")
@@ -109,11 +132,33 @@ class ImageController {
         }
     }
 
+    /**
+     * Serve the image file from the file system.
+     *
+     * @param response
+     * @param filePath
+     * @param imageIdentifier
+     * @param contentType
+     * @param extension
+     * @param addContentDisposition
+     * @return
+     */
     private def serveImageFile(response, String filePath, String imageIdentifier, String contentType, String extension, boolean addContentDisposition){
         def file = new File(filePath)
         serveImageFile(response, file, imageIdentifier, contentType, extension, addContentDisposition)
     }
 
+    /**
+     * Serve image from file system.
+     *
+     * @param response
+     * @param file
+     * @param imageIdentifier
+     * @param contentType
+     * @param extension
+     * @param addContentDisposition
+     * @return
+     */
     private def serveImageFile(response, File file, String imageIdentifier, String contentType, String extension, boolean addContentDisposition){
         response.setContentLength(file.size() as int)
         response.setContentType(contentType)
@@ -128,7 +173,7 @@ class ImageController {
     }
 
     @ApiOperation(
-            value = "Get image large version",
+            value = "Get image thumbnail large version",
             nickname = "{id}/large",
             produces = "image/jpeg",
             httpMethod = "GET"
@@ -202,6 +247,14 @@ class ImageController {
 
         def u = new URL(imageUrl)
         response.setContentType(mimeType ?: "image/jpeg")
+
+        // this is specifically for iNaturalist data, where extensions are currently parsed to strings like m4a?12312312
+        if (extension && extension.contains("?")){
+            def cleanedExtension = extension.substring(0, extension.indexOf("?"))
+            if (cleanedExtension && cleanedExtension.length() > 0){
+                extension  = cleanedExtension
+            }
+        }
 
         if (imageIdentifier && addContentDisposition) {
             response.setHeader("Content-disposition", "attachment;filename=${imageIdentifier}.${extension ?: "jpg"}")
@@ -337,8 +390,8 @@ class ImageController {
     @ApiOperation(
             value = "Get original image",
             nickname = "{id}",
-            notes = "To get an image, supply an Accept-Content header with a value of 'image/jpeg'",
-            produces = "image/jpeg",
+            notes = "To get an image, supply an 'Accept' header with a value of 'image/jpeg'",
+            produces = "image/jpeg,application/json,text/html",
             httpMethod = "GET"
     )
     @ApiResponses([
@@ -349,23 +402,73 @@ class ImageController {
             @ApiImplicitParam(name = "id", paramType = "path", required = true, value = "Image Id", dataType = "string")
     ])
     def details() {
-        if (request.getHeader('accept') && request.getHeader('accept').indexOf(MediaType.IMAGE_JPEG.toString()) > -1) {
+
+        if (request.getHeader('accept')) {
+
+            boolean imageRequest = request.getHeader('accept').indexOf(MediaType.IMAGE_JPEG.toString()) > -1
+            boolean htmlRequest = request.getHeader('accept').indexOf("text/html") > -1
+
             def imageInstance = imageService.getImageFromParams(params)
-            if (imageInstance) {
-                def imageUrl = imageService.getImageUrl(imageInstance.imageIdentifier)
-                boolean contentDisposition = params.boolean("contentDisposition")
-                proxyImageRequest(response, imageUrl, imageInstance.imageIdentifier, imageInstance.extension, (int) imageInstance.fileSize ?: 0, contentDisposition)
-                if (grailsApplication.config.analytics.trackDetailedView.toBoolean()) {
-                    sendAnalytics(imageInstance, 'imageview')
+            if (htmlRequest){
+                if (imageInstance) {
+                    getImageModel(imageInstance)
+                } else {
+                    flash.errorMessage = "Could not find image with id ${params.int("id") ?: params.imageId }!"
+                    redirect(action:'list', controller: 'search')
                 }
+            } else if(imageRequest){
+                if (imageInstance) {
+                    def imageUrl = imageService.getImageUrl(imageInstance.imageIdentifier)
+                    boolean contentDisposition = params.boolean("contentDisposition")
+                    proxyImageRequest(response, imageUrl, imageInstance.imageIdentifier, imageInstance.extension, imageInstance.mimeType, (int) imageInstance.fileSize ?: 0, contentDisposition)
+                    if (grailsApplication.config.analytics.trackDetailedView.toBoolean()) {
+                        sendAnalytics(imageInstance, 'imageview')
+                    }
+                } else {
+                    response.setStatus(404)
+                    proxyImageRequest(response, grailsApplication.config.placeholder.missing.thumbnail as String, null, null, "image/png", 0, false)
+                }
+            } else {
+                renderImageInstance(imageInstance)
             }
         } else {
+            //default to html view
             def image = imageService.getImageFromParams(params)
-            if (!image) {
+            if (image) {
+                getImageModel(image)
+            } else {
                 flash.errorMessage = "Could not find image with id ${params.int("id") ?: params.imageId }!"
                 redirect(action:'list', controller: 'search')
-            } else {
-                getImageModel(image)
+            }
+        }
+    }
+
+    private renderImageInstance(Object imageInstance) {
+        response.addHeader("Access-Control-Allow-Origin", "")
+        withFormat {
+            json {
+
+                if(imageInstance) {
+                    def jsonStr = imageInstance as JSON
+                    if (params.callback) {
+                        response.setContentType("text/javascript")
+                        render("${params.callback}(${jsonStr})")
+                    } else {
+                        response.setContentType("application/json")
+                        render(jsonStr)
+                    }
+                } else {
+                    response.status = 404
+                    render([success:false] as JSON)
+                }
+            }
+            xml {
+                if(imageInstance) {
+                    render(imageInstance as XML)
+                } else {
+                    response.status = 404
+                    render([success:false] as XML)
+                }
             }
         }
     }

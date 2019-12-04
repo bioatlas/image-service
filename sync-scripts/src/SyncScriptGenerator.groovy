@@ -10,9 +10,9 @@ a = 0
 
 while (line){
   a += 1
-  writer.write("ssh images-beta.ala.org.au 'mkdir -p ${line[1]}'")
+  writer.write("ssh aws-image-service.ala.org.au 'mkdir -p ${line[1]}'")
   writer.write("\n")
-  writer.write("rsync -r -e ssh ${line[1].replaceAll("image-service", "images")} images-beta.ala.org.au:${line[1].substring(0, line[1].lastIndexOf("/"))}")
+  writer.write("rsync -r -e ssh ${line[1].replaceAll("image-service", "images")} aws-image-service.ala.org.au:${line[1].substring(0, line[1].lastIndexOf("/"))}")
   writer.write("\n")
   writer.flush()
   line = reader.readNext()

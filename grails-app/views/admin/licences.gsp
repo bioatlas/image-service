@@ -23,32 +23,31 @@
             <g:form class="form-horizontal" name="licencesUpdate" action="updateStoredLicences" controller="admin" method="POST">
                 <h3>Licences</h3>
                 <p>
-                    Please paste in CSV data into the text boxes below (without column headers).
-                    Must be in CSV format with the following columns:
+                    Please paste in CSV data into the text box below (without column headers).
+                    Text must be in CSV format with the following columns:
                 <ul>
-                    <li>acronym e.g. 'CC BY' - this is used to determine uniqueness</li>
-                    <li>name  e.g. 'Creative Commons by Attribution' </li>
-                    <li>url</li>
-                    <li>imageUrl</li>
+                <li><b>acronym</b> e.g. 'CC BY' - this is used to determine uniqueness</li>
+                    <li><b>name</b>  e.g. 'Creative Commons by Attribution' </li>
+                    <li><b>url</b> - the canonical URL representing the data licence e.g. 'https://creativecommons.org/publicdomain/zero/1.0/' </li>
+                    <li><b>imageUrl</b> - a URL for an icon representing the data licence  e.g. 'https://licensebuttons.net/l/zero/1.0/88x31.png' </li>
                 </ul>
-                </p>
                 <div class="form-group">
                     <label class="control-label" for="licenses">Licences</label>
-                    <textarea class="form-control" rows="5" id="licenses" name="licenses"></textarea>
+                    <textarea class="form-control" rows="10" id="licenses" name="licenses">${licenceCSV}</textarea>
                 </div>
 
                 <h3>Licence Mapping</h3>
                 <p>
-                    Please paste in CSV data into the text boxes below.
-                    Must be in CSV format with the following columns:
+                    Please paste in CSV data into the text box below.
+                    Text must be in CSV format with the following columns:
                 <ul>
-                    <li>acronym e.g. "CC BY"</li>
-                    <li>value "Creative Commons CC BY"</li>
+                    <li><b>acronym</b> e.g. "CC BY"</li>
+                    <li><b>value</b> "Creative Commons CC BY"</li>
                 </ul>
                 </p>
                 <div class="form-group">
                     <label class="control-label" for="licenseMapping">Licence Mapping</label>
-                    <textarea class="form-control" rows="5" id="licenseMapping" name="licenseMapping"></textarea>
+                    <textarea class="form-control" rows="10" id="licenseMapping" name="licenseMapping">${licenceCSVMapping}</textarea>
                 </div>
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary" id="btnUploadCSVImagesFile">Update</button>

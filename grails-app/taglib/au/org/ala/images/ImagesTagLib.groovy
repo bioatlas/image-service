@@ -109,22 +109,29 @@ class ImagesTagLib {
     }
 
     def imageSearchResult = { attrs, body ->
+
         if (attrs.image) {
+            def creator = ''
+            if (attrs.image.creator && attrs.image.creator != ElasticSearchService.NOT_SUPPLIED){
+                creator = attrs.image.creator
+            }
+
             if(attrs.image.dataResourceUid){
                 def metadata = collectoryService.getResourceLevelMetadata(attrs.image.dataResourceUid)
                 out << """<div class="thumb-caption caption-detail ${attrs.css?:''}">"""
                 out <<  "<span class='resource-name'>${metadata.name?:''}</span>"
-                if (metadata.name && (attrs.image.title || attrs.image.creator)){
+                if (metadata.name && (attrs.image.title || creator)){
                     out << ' - '
                 }
-                def text = "${attrs.image.title? attrs.image.title: ''} ${attrs.image.creator ?  attrs.image.creator : ''}"
+
+                def text = "${attrs.image.title? attrs.image.title: ''} ${creator}"
                 text = StringUtils.abbreviate(text, 100)
                 out << "<span>${text}</span>"
                 out << '</div>'
             } else {
-                if(attrs.image.dataResourceUid || attrs.image.title || attrs.image.creator){
+                if (attrs.image.dataResourceUid || attrs.image.title || creator){
                     out << """<div class="thumb-caption caption-detail ${attrs.css?:''}">"""
-                    def output = "${attrs.image.dataResourceUid ? attrs.image.dataResourceUid: ''} ${attrs.image.title ? attrs.image.title :''} ${attrs.image.creator ?  attrs.image.creator : ''}"
+                    def output = "${attrs.image.dataResourceUid ? attrs.image.dataResourceUid: ''} ${attrs.image.title ? attrs.image.title :''} ${creator}"
                     out << StringUtils.abbreviate(output, 100)
                     out << '</div>'
                 }

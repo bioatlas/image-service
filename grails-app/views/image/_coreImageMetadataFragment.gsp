@@ -16,6 +16,16 @@
         <td class="property-name">Image Identifier</td>
         <td class="property-value">${imageInstance.imageIdentifier}</td>
     </tr>
+    <g:if test="${imageInstance.occurrenceId}">
+        <tr>
+            <td class="property-name">Occurrence ID</td>
+            <td class="property-value">
+                <a href="${grailsApplication.config.biocache.baseURL}/occurrences/${imageInstance.occurrenceId}">
+                    ${imageInstance.occurrenceId}
+                </a>
+            </td>
+        </tr>
+    </g:if>
     <tr>
         <td class="property-name">Title</td>
         <td class="property-value">${imageInstance.title}</td>
@@ -126,13 +136,13 @@
     </g:if>
     <tr>
         <td colspan="2">
-            <g:link controller="webService" action="getImageInfo" params="[id:imageInstance.imageIdentifier,includeMetadata:true,includeTags:true]" title="View JSON metadata" class="btn btn-default">
+            <g:link mapping="image_ws_url" params="[imageId:imageInstance.imageIdentifier,includeMetadata:true,includeTags:true]" title="View JSON metadata" class="btn btn-default">
                 <i class="glyphicon glyphicon-wrench"> </i>
             </g:link>
             <g:if test="${isImage}">
                 <button class="btn btn-default" id="btnViewImage" title="View zoomable image"><span class="glyphicon glyphicon-eye-open"> </span></button>
             </g:if>
-            <a class="btn btn-default" href="${createLink(controller:'image', action:'proxyImage', id:imageInstance.id, params:[contentDisposition: 'true'])}" title="Download full image" target="imageWindow"><i class="glyphicon glyphicon-download-alt"></i></a>
+            <a class="btn btn-default" href="${createLink(controller:'image', action:'getOriginalFile', id:imageInstance.id, params:[contentDisposition: 'true'])}" title="Download full image" target="imageWindow"><i class="glyphicon glyphicon-download-alt"></i></a>
             <g:if test="${isAdminView}">
                 <button class="btn btn-default" id="btnRegen" title="Regenerate artifacts"><i class="glyphicon glyphicon-refresh"></i></button>
             </g:if>
